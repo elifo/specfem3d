@@ -122,6 +122,11 @@ We recommend that you add {\texttt{ulimit -S -s unlimited}} to your
 unlimited }} to your {\texttt{.cshrc}} file to suppress any potential
 limit to the size of the Unix stack.\\
 
+Beware that some cluster systems that can run a recent code version may not compile and\slash or run a previous version of the code. \\
+
+When using dynamic fault rupture with the developer version and parallel computation, we recommend you to set the {\texttt{FAULT_SYNCHRONIZE_DISPL_VELOC}} and {\texttt{FAULT_SYNCHRONIZE_ACCEL}} parameters {\texttt{.false.}}.\\  
+
+
 %-----------------------------------------------------------------------------------------------------------------------------------%
 \section{Using the GPU version of the code}
 %-----------------------------------------------------------------------------------------------------------------------------------%

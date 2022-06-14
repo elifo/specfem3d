@@ -57,6 +57,7 @@
 
   use fault_generate_databases, only: fault_read_input,fault_setup, &
                           fault_save_arrays,fault_save_arrays_test, &
+                          fault_save_arrays_txt, &
                           nnodes_coords_open,nodes_coords_open,ANY_FAULT_IN_THIS_PROC, &
                           ANY_FAULT
 
@@ -286,6 +287,10 @@
 
     ! saves fault arrays
     call fault_save_arrays(prname)
+
+    ! save fault arrays in txt
+    call fault_save_arrays_txt(prname)
+
   endif
 
   ! saves moho surface

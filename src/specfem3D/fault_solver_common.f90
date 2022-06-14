@@ -60,14 +60,17 @@ module fault_solver_common
 
   type swf_type
     integer :: kind
+    integer :: isTWF
     logical :: healing = .false.
+    real(kind=CUSTOM_REAL) :: twf_r, twf_v, twf_coh
     real(kind=CUSTOM_REAL), dimension(:), pointer :: Dc => null(), mus => null(), mud => null(), &
-                                                     theta => null(), T => null(), C => null()
+                                                     theta => null(), T => null(), C => null(), &
+                                                     twf_dist => null()
   end type swf_type
 
-  type twf_type
-    real(kind=CUSTOM_REAL) ::  nuc_x, nuc_y, nuc_z, nuc_r, nuc_t0, nuc_v
-  end type twf_type
+!  type twf_type
+!    real(kind=CUSTOM_REAL) ::  nuc_x, nuc_y, nuc_z, nuc_r, nuc_t0, nuc_v
+!  end type twf_type
 
 
   type rsf_type
@@ -98,7 +101,7 @@ module fault_solver_common
     type(dataXZ_type)       :: dataXZ,dataXZ_all
     type(swf_type), pointer :: swf => null()
     type(rsf_type), pointer :: rsf => null()
-    type(twf_type), pointer :: twf => null()
+!    type(twf_type), pointer :: twf => null()
     logical                 :: allow_opening = .false. ! default : do not allow opening
 
 !! DK DK added this in order to be able to use the type for both dynamic and kinematic faults

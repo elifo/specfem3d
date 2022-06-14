@@ -374,11 +374,18 @@ contains
   integer, intent(in) :: myrank
 
   real(kind=CUSTOM_REAL) :: S1,S2,S3,Sigma(6)
-  integer :: n1,n2,n3,ier,recordlength
+  real(kind=CUSTOM_REAL) :: b_left,b_right,Lmax_left,Lmax_right,Dmin,Dmax,zlimit,aparam,nuc_x,nuc_z,dhypo
+  real(kind=CUSTOM_REAL) :: twf_r, twf_v, twf_t0, twf_x, twf_y, twf_z
+  integer :: n1,n2,n3,ier,recordlength,k,i
   logical :: LOAD_STRESSDROP = .false.
+  logical :: LOAD_FAULTSTRESS = .false.
+  logical :: DCFUNCTION = .false.
+  logical :: isTWF = .false.
 
-  NAMELIST / INIT_STRESS / S1,S2,S3,n1,n2,n3
+  NAMELIST / INIT_STRESS / S1,S2,S3,n1,n2,n3,LOAD_FAULTSTRESS,DCFUNCTION,isTWF
   NAMELIST /STRESS_TENSOR / Sigma
+  NAMELIST / DC_PARAMS/ b_left,b_right,Lmax_left,Lmax_right,Dmin,Dmax,zlimit,nuc_x
+  NAMELIST / TWF_PARAMS/ twf_r, twf_v, twf_t0, twf_x, twf_y, twf_z
 
   ! reads in fault_db binary file and initializes fault arrays
   call initialize_fault(bc,IIN_BIN)
@@ -419,6 +426,16 @@ contains
       call load_stress_drop()
     endif
 
+    if (LOAD_STRESSDROP  .and.  LOAD_FAULTSTRESS) then
+      print*, 'Warning: both LOAD_STRESSDROP and LOAD_FAULTSTRESS are true, which is not tested!'
+    endif
+
+    ! Read three components of initial stress
+    ! Elif (02/2020)
+    if (LOAD_FAULTSTRESS) then
+        call load_initial_stress_from_file()
+    endif
+
     call init_2d_distribution(bc%T0(1,:),bc%coord,IIN_PAR,n1)
     call init_2d_distribution(bc%T0(2,:),bc%coord,IIN_PAR,n2)
     call init_2d_distribution(bc%T0(3,:),bc%coord,IIN_PAR,n3)
@@ -452,19 +469,103 @@ contains
       if (ier /= 0) call exit_MPI_without_rank('error allocating array 1369')
 
       call swf_init(bc%swf,bc%mu,bc%coord,IIN_PAR)
-
+    
       ! TPV16 benchmark
       if (TPV16) call TPV16_init() !WARNING: ad hoc, initializes T0 and swf
 
       ! time weakening friction
-      if (TWF) then
-        allocate(bc%twf,stat=ier)
-        if (ier /= 0) call exit_MPI_without_rank('error allocating twf array')
-
-        call twf_init(bc%twf,IIN_PAR)
+!      if (TWF) then
+!        allocate(bc%twf,stat=ier)
+!        if (ier /= 0) call exit_MPI_without_rank('error allocating twf array')
+!
+!        call twf_init(bc%twf,IIN_PAR)
+!      endif
+ 
+     ! Elif : TWF
+     !if (isTWF) then
+     ! i allocate TWF even if it is False, to transfer to GPU anyways
+        write(*,*) 'isTWF:: ', isTWF
+        twf_r = 0.0_CUSTOM_REAL
+        twf_v = 0.0_CUSTOM_REAL
+        twf_t0 = 0.0_CUSTOM_REAL
+        twf_x = 0.0_CUSTOM_REAL
+        twf_y = 0.0_CUSTOM_REAL
+        twf_z = 0.0_CUSTOM_REAL
+        bc%swf%isTWF = 0
+      if (isTWF) then
+        read(IIN_PAR, nml=TWF_PARAMS)
+        bc%swf%isTWF = 1
       endif
-    endif
+        write(*,*) 'TWF_PARAMS:: ',twf_r, twf_v, twf_t0
+      
+        bc%swf%twf_coh = twf_v* twf_t0  
+        bc%swf%twf_v = twf_v
+        bc%swf%twf_r = twf_r
+        write(*,*) 'TWF_PARAMS:: bc%swf%twf_coh ', bc%swf%twf_coh
+        write(*,*) 'TWF_PARAMS:: bc%swf%twf_v  ', bc%swf%twf_v
+        write(*,*) 'TWF_PARAMS:: bc%swf%twf_r  ', bc%swf%twf_r
 
+        allocate( bc%swf%twf_dist(bc%nglob) ,stat=ier)
+        if (ier /= 0) call exit_MPI_without_rank('error allocating array 1370')
+        
+        do i=1,bc%nglob
+           bc%swf%twf_dist(i) = ((bc%coord(1,i)-twf_x)**2 + &
+                                 (bc%coord(2,i)-twf_y)**2 + &
+                                 (bc%coord(3,i)-twf_z)**2)**0.5
+        enddo
+
+
+      ! Distance-dependent Dc function
+      ! Elif (01/2021)
+      ! set a custom power function to make Dc distance dependent
+      ! distance is horizontal distance of the point to hypocenter
+      ! apply this for points with z < zmax; zmax is a new input parameter.
+      if (DCFUNCTION) then
+         ! read function parameters
+         b_left      = 2.0e0_CUSTOM_REAL
+         b_right     = 2.0e0_CUSTOM_REAL
+         Lmax_left   = 0.0e0_CUSTOM_REAL
+         Lmax_right  = 0.0e0_CUSTOM_REAL
+         Dmin        = 0.0e0_CUSTOM_REAL
+         Dmax        = 0.0e0_CUSTOM_REAL
+         zlimit      = 0.0e0_CUSTOM_REAL
+         aparam      = 0.0e0_CUSTOM_REAL
+         nuc_x       = 0.0e0_CUSTOM_REAL
+         nuc_z       = 0.0e0_CUSTOM_REAL
+         dhypo       = 0.0e0_CUSTOM_REAL
+
+         read(IIN_PAR, nml=DC_PARAMS)
+         
+         if (isTWF) nuc_x=twf_x
+         if (isTWF) nuc_z=twf_z
+        
+         write(*,*)  'DCPARAMS:: ', Dmin, Dmax, aparam, Lmax_left, Lmax_right
+         do k=1,bc%nglob
+            if ( bc%coord(3,k) > zlimit) then
+              
+               ! hypocentral distance (2D: xz plane)
+               dhypo =  (bc%coord(1,k)- nuc_x)**2.0e0_CUSTOM_REAL+ &
+                       (bc%coord(3,k)- nuc_z)**2.0e0_CUSTOM_REAL
+               dhypo = dhypo** 0.5e0_CUSTOM_REAL
+
+               ! left of the hypocenter
+               if ( bc%coord(1,k)  <=   nuc_x ) then
+                  aparam = (Dmax- Dmin)/ (Lmax_left** b_left)
+                  !bc%swf%Dc(k) = Dmin+ (abs(bc%coord(1,k)- nuc_x)**b_left)*aparam
+                  bc%swf%Dc(k) = Dmin+ (dhypo** b_left)* aparam
+               ! right of the hypocenter
+               else
+                  aparam = (Dmax- Dmin)/ (Lmax_right** b_right)
+                  !bc%swf%Dc(k) = Dmin+ (abs(bc%coord(1,k)- nuc_x)**b_right)*aparam
+                  bc%swf%Dc(k) = Dmin+ (dhypo** b_right)* aparam
+               endif
+            endif
+         enddo
+      endif ! dcfunction
+      
+
+    endif !rateandstate
+ 
 !! unused
 ! added by kangchen, this is specifically made for the Balochistan simulation
 !  call load_stress_tpv35()
@@ -474,7 +575,7 @@ contains
     allocate(bc%T(3,1), &
              bc%D(3,1), &
              bc%V(3,1))
-  endif
+  endif !nspec
 
   ! output dataT structure
   if (RATE_AND_STATE) then
@@ -623,6 +724,40 @@ contains
 
     end subroutine load_stress_drop
 
+!---------------------------------------------------------------------
+    subroutine load_initial_stress_from_file()
+    ! modified for SCEC dynamic rupture benchmark by Elif (02/2020)
+    ! reads bin files that are prepared by Python pre-processing.
+
+    use specfem_par, only: prname
+
+    implicit none
+
+    real(kind=CUSTOM_REAL) :: nrow
+    real(kind=CUSTOM_REAL), dimension(bc%nglob,3) :: stress_data
+    character(len=70) :: filename
+    integer :: nglob,i
+    integer, parameter :: IIN_STR = 122 !could also use e.g. standard IIN from constants.h
+
+    filename = prname(1:len_trim(prname))//'fault_init_stress.bin'
+    write(*,*) 'prname,bc%nglob, filename', prname,bc%nglob, filename
+
+    ! iostat and action to add while reading
+    open(unit=IIN_STR,file=trim(filename),status='old',form='unformatted',access='stream')
+    read(IIN_STR) nrow
+    nglob = int(nrow)
+    do i=1, nglob
+        read(IIN_STR) stress_data(i,:)
+    enddo
+    close(IIN_STR)
+
+    bc%T0(1,:)=stress_data(:,1)
+    bc%T0(2,:)=stress_data(:,2)
+    bc%T0(3,:)=stress_data(:,3)
+
+    end subroutine load_initial_stress_from_file
+!---------------------------------------------------------------------
+
 !! unused
 !   subroutine load_stress_tpv35
 !
@@ -760,6 +895,17 @@ contains
       b(:) = heaviside( tmp1(:) ) * heaviside( tmp2(:) ) * heaviside( tmp3(:) ) &
           * (val + ( coord(3,:) - zc + lz/2.0_CUSTOM_REAL ) * (valh-val)/lz )
 
+    ! Elif: mu_s = val* exp(coef**distance-to_cutoff_depth)
+    ! coef deduced after creep function for depth-dependent stress (Shebalin & Narteau) 
+    ! zc=cut-off-depth; val=value at cut-off-depth
+    case  ('expo-z-increase')
+       where ( coord(3,:) <= zc )
+           r1(:) = abs((coord(3,:)- zc)/1.0e3_CUSTOM_REAL) 
+           b(:) = min(val* exp(0.5* r1(:)), 10.0e3_CUSTOM_REAL)
+      elsewhere
+           b(:) = 0.0_CUSTOM_REAL
+      endwhere
+
     case default
       stop 'bc_dynflt_3d::init_2d_distribution:: unknown shape'
     end select
@@ -877,7 +1023,7 @@ contains
   real(kind=CUSTOM_REAL), dimension(bc%nglob) :: Vf_old, Vf_new, TxExt, tmp_Vf
   real(kind=CUSTOM_REAL) :: half_dt,TLoad,DTau0,GLoad,timeval
   integer :: i,ipoin,iglob
-  real(kind=CUSTOM_REAL) :: nuc_x, nuc_y, nuc_z, nuc_r, nuc_t0, nuc_v, dist, tw_r, coh_size
+!  real(kind=CUSTOM_REAL) :: nuc_x, nuc_y, nuc_z, nuc_r, nuc_t0, nuc_v, dist, tw_r, coh_size
 
 ! note: this implementation follows the description in:
 !       - rate and state friction:
@@ -976,27 +1122,27 @@ contains
       bc%mu(:) = swf_mu(bc%swf)
 
       ! combined with time-weakening for nucleation
-      if (TWF) then
-        timeval = it*bc%dt
-        nuc_x   = bc%twf%nuc_x
-        nuc_y   = bc%twf%nuc_y
-        nuc_z   = bc%twf%nuc_z
-        nuc_r   = bc%twf%nuc_r
-        nuc_t0  = bc%twf%nuc_t0
-        nuc_v   = bc%twf%nuc_v
-        do i = 1,bc%nglob
-            dist = ((bc%coord(1,i)-nuc_x)**2 + (bc%coord(2,i)-nuc_y)**2 + (bc%coord(3,i)-nuc_z)**2)**0.5
-            if (dist <= nuc_r) then
-                tw_r     = timeval * nuc_v
-                coh_size = nuc_t0  * nuc_v
-                if (dist <= tw_r - coh_size) then
-                    bc%mu(i) = min(bc%mu(i), bc%swf%mud(i))
-                else if (dist > tw_r - coh_size .and. dist <= tw_r ) then
-                    bc%mu(i) = min(bc%mu(i), bc%swf%mud(i) + (dist-(tw_r-coh_size))/coh_size*(bc%swf%mus(i)-bc%swf%mud(i)))
-                endif
-            endif
-        enddo
-      endif
+!      if (TWF) then
+!        timeval = it*bc%dt
+!        nuc_x   = bc%twf%nuc_x
+!        nuc_y   = bc%twf%nuc_y
+!        nuc_z   = bc%twf%nuc_z
+!        nuc_r   = bc%twf%nuc_r
+!        nuc_t0  = bc%twf%nuc_t0
+!        nuc_v   = bc%twf%nuc_v
+!        do i = 1,bc%nglob
+!            dist = ((bc%coord(1,i)-nuc_x)**2 + (bc%coord(2,i)-nuc_y)**2 + (bc%coord(3,i)-nuc_z)**2)**0.5
+!            if (dist <= nuc_r) then
+!                tw_r     = timeval * nuc_v
+!                coh_size = nuc_t0  * nuc_v
+!                if (dist <= tw_r - coh_size) then
+!                    bc%mu(i) = min(bc%mu(i), bc%swf%mud(i))
+!                else if (dist > tw_r - coh_size .and. dist <= tw_r ) then
+!                    bc%mu(i) = min(bc%mu(i), bc%swf%mud(i) + (dist-(tw_r-coh_size))/coh_size*(bc%swf%mus(i)-bc%swf%mud(i)))
+!                endif
+!            endif
+!        enddo
+!      endif
 
       ! TPV16 benchmark
       if (TPV16) then
@@ -1149,7 +1295,7 @@ contains
   NAMELIST / SWF / mus,mud,dc,nmus,nmud,ndc,C,T,nC,nForcedRup
 
   nglob = size(mu)
-
+  
   ! static friction coefficient
   allocate( f%mus(nglob) ,stat=ier)
   if (ier /= 0) call exit_MPI_without_rank('error allocating array 1370')
@@ -1172,6 +1318,7 @@ contains
   ! WARNING: if V_HEALING is negative we turn off healing
   f%healing = (V_HEALING > 0.0_CUSTOM_REAL)
 
+
   mus = 0.6_CUSTOM_REAL
   mud = 0.1_CUSTOM_REAL
   dc = 1.0_CUSTOM_REAL
@@ -1191,6 +1338,7 @@ contains
   f%Dc(:)  = dc   ! critical slip distance
   f%C(:)   = C    ! cohesion
   f%T(:)   = T    ! (forced) rupture time
+ 
 
   call init_2d_distribution(f%mus,coord,IIN_PAR,nmus)
   call init_2d_distribution(f%mud,coord,IIN_PAR,nmud)
@@ -1206,38 +1354,34 @@ contains
 
 !===============================================================
 
-  subroutine twf_init(f,IIN_PAR)
+!  subroutine twf_init(f,IIN_PAR)
 
-  implicit none
+!  implicit none
 
-  type(twf_type), intent(out) :: f
-  integer, intent(in) :: IIN_PAR
+!  type(swf_type), intent(out) :: f
+!  integer, intent(in) :: IIN_PAR
+  
+!  integer :: ier
+!  real(kind=CUSTOM_REAL) :: nuc_r, nuc_t0, nuc_v
+  
+!  NAMELIST / TWF_PARAMS / nuc_r,nuc_t0,nuc_v
 
-  integer :: ier
+!  nuc_r  = 0.0_CUSTOM_REAL
+!  nuc_t0 = 0.0_CUSTOM_REAL
+!  nuc_v  = 0.0_CUSTOM_REAL
 
-  real(kind=CUSTOM_REAL) :: nuc_x, nuc_y, nuc_z, nuc_r, nuc_t0, nuc_v
-  NAMELIST / TWF / nuc_x, nuc_y, nuc_z, nuc_r,nuc_t0,nuc_v
+!  read(IIN_PAR, nml=TWF_PARAMS, iostat=ier)
+!  if (ier /= 0) write(*,*) 'TWF_PARAMS not found in Par_file_faults.'
 
-  nuc_x  = 0.0_CUSTOM_REAL
-  nuc_y  = 0.0_CUSTOM_REAL
-  nuc_z  = 0.0_CUSTOM_REAL
 
-  nuc_r  = 0.0_CUSTOM_REAL
-  nuc_t0 = 0.0_CUSTOM_REAL
-  nuc_v  = 0.0_CUSTOM_REAL
+!  f%twf_r  = nuc_r
+!  f%twf_v  = nuc_v
+!  f%twf_coh = nuc_r* nuc_t0
 
-  read(IIN_PAR, nml=TWF,iostat=ier)
-  if (ier /= 0) write(*,*) 'TWF not found in Par_file_faults.'
+!  write(*,*) 'inside twf_init:: ', f%twf_r, f%twf_v, f%twf_coh
+!  write(*,*) 'inside twf_init:: '
 
-  f%nuc_x  = nuc_x
-  f%nuc_y  = nuc_y
-  f%nuc_z  = nuc_z
-
-  f%nuc_r  = nuc_r
-  f%nuc_t0 = nuc_t0
-  f%nuc_v  = nuc_v
-
-  end subroutine twf_init
+!  end subroutine twf_init
 
 
 !---------------------------------------------------------------------
@@ -1323,9 +1467,11 @@ contains
       ! checks feature
       if (g%healing) stop 'Fault healing for slip weakening friction not implemented yet on GPU'
 
+
       ! copies arrays to GPU
-      call transfer_swf_data_todevice(Fault_pointer, ifault-1, bc%nglob, &
-                                      g%Dc,g%mus,g%mud,g%T,g%C,g%theta)
+      call transfer_swf_data_todevice(Fault_pointer, ifault-1, bc%nglob, g%isTWF,  &
+                                      g%Dc,g%mus,g%mud,g%T,g%C,g%twf_dist,g%theta, &
+                                      g%twf_r, g%twf_v, g%twf_coh)
     endif
   enddo
 

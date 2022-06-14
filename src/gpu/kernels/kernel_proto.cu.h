@@ -532,6 +532,11 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
                                                 realw* T0,
                                                 realw* T,       // for output
                                                 realw* Dc,
+                                                int isTWF,
+                                                realw* twf_dist,
+                                                realw twf_r,
+                                                realw twf_v,
+                                                realw twf_coh,
                                                 realw* theta,
                                                 realw* mus,
                                                 realw* mud,
@@ -541,7 +546,8 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
                                                 realw* D_slip,
                                                 int* ibulk1,
                                                 int* ibulk2,
-                                                realw dt) ;
+                                                realw dt,
+                                                realw it) ;
 
 __global__  void compute_dynamic_fault_cuda_rsf(realw* Displ,   // mesh quantities
                                                 realw* Veloc,

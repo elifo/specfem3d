@@ -519,6 +519,20 @@
 ! synchronizes accel array across different MPI processes
   logical ,parameter :: FAULT_SYNCHRONIZE_ACCEL = .false.
 
+!!-----------------------------------------------------------
+!!
+!! Velocity profile
+!!
+!!-----------------------------------------------------------
+
+! imposes Vs, Vp, density values as a function of depth
+! after the SCEC dynamic rupture group benchmark 2021
+
+  logical, parameter :: IS_SCEC_STRATIFIEDMODEL_2021 = .false.
+  logical, parameter :: IS_RIDGECREST_VELOCMODEL = .true.
+
+
+
 !------------------------------------------------------
 !----------- do not modify anything below -------------
 !------------------------------------------------------

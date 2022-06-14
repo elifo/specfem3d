@@ -84,7 +84,7 @@ module fault_generate_databases
                  iface3_corner_ijk,iface4_corner_ijk, &
                  iface5_corner_ijk,iface6_corner_ijk /),(/3,4,6/))   ! all faces
 
-  public :: fault_read_input, fault_setup, fault_save_arrays_test, fault_save_arrays, &
+  public :: fault_read_input, fault_setup, fault_save_arrays_test, fault_save_arrays, fault_save_arrays_txt, &
             nodes_coords_open, nnodes_coords_open, ANY_FAULT_IN_THIS_PROC, ANY_FAULT
 
 contains
@@ -807,5 +807,67 @@ contains
   write(IOUT) f%ispec2
 
   end subroutine save_one_fault_bin
+
+!====================================================================================
+! saves all fault data in ASCII files to use in interpolation of fault points
+! tested for stress heterogeneity 
+! Elif (01/2020)
+
+  subroutine fault_save_arrays_txt(prname)
+
+  use constants, only: MAX_STRING_LEN
+
+  implicit none
+  character(len=MAX_STRING_LEN), intent(in) :: prname ! 'proc***'
+
+  integer, parameter :: IOUT = 121 !WARNING: not very robust. Could instead look for an available ID
+  integer :: nbfaults,iflt,ier
+  character(len=MAX_STRING_LEN) :: filename
+
+  if (.not. ANY_FAULT) return
+
+  ! saves mesh file proc***_fault_db.txt
+  filename = prname(1:len_trim(prname))//'fault_db.txt'
+  open(unit=IOUT,file=trim(filename),status='unknown',action='write',iostat=ier)
+  if (ier /= 0) stop 'error opening database proc######_external_mesh.bin'
+
+  nbfaults = size(fault_db)
+  write(IOUT,*) 'NBFAULTS = ', nbfaults
+  do iflt=1,nbfaults
+    write(IOUT,*) 'BEGIN FAULT # ', iflt
+    call save_one_fault_test_txt(fault_db(iflt),IOUT)
+    write(IOUT,*) 'END FAULT # ', iflt
+  enddo
+  close(IOUT)
+
+  end subroutine fault_save_arrays_txt
+!====================================================================================
+!
+ ! Elif (01/2020)
+ ! modified for python pre-processing.
+
+  subroutine save_one_fault_test_txt(f,IOUT)
+
+  implicit none
+  type(fault_db_type), intent(in) :: f
+  integer, intent(in) :: IOUT
+
+  integer :: k
+  character(15) :: fmt1,fmt2
+
+  write(fmt1,'("(a,",I0,"(x,I7))")') NGLLSQUARE+1  !fmt=(a,(NGLL^2+1)(x,I7))
+  write(fmt2,'("(a,",I0,"(x,F0.4))")') NGLLSQUARE+1 !fmt=(a,(NGLL^2+1)(x,F0.16))
+  write(IOUT,*) 'NSPEC NGLOB NGLL = ',f%nspec,f%nglob,NGLLX
+  write(IOUT,*) 'FLT_NODE xcoordbulk ycoordbulk zcoordbulk'
+  do k=1,f%nglob
+    write(IOUT,*) f%ibulk1(k),f%xcoordbulk1(k),f%ycoordbulk1(k),f%zcoordbulk1(k)
+    write(IOUT,*) f%ibulk2(k),f%xcoordbulk2(k),f%ycoordbulk2(k),f%zcoordbulk2(k)
+  enddo
+
+end subroutine save_one_fault_test_txt
+!====================================================================================
+
+
+
 
 end module fault_generate_databases

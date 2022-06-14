@@ -37,13 +37,16 @@
     IDOMAIN_ACOUSTIC,IDOMAIN_ELASTIC,IDOMAIN_POROELASTIC, &
     nspec => NSPEC_AB,ibool,mat_ext_mesh, &
     mat_prop,nmat_ext_mesh,undef_mat_prop,nundefMat_ext_mesh, &
-    ANISOTROPY
+    ANISOTROPY, &
+    nglob => NGLOB_AB 
 
   use create_regions_mesh_ext_par
 
   ! injection technique
-  use constants, only: INJECTION_TECHNIQUE_IS_FK,INJECTION_TECHNIQUE_IS_DSM,INJECTION_TECHNIQUE_IS_AXISEM
+  use constants, only: INJECTION_TECHNIQUE_IS_FK,INJECTION_TECHNIQUE_IS_DSM,INJECTION_TECHNIQUE_IS_AXISEM,&
+                       IS_RIDGECREST_VELOCMODEL,IS_SCEC_STRATIFIEDMODEL_2021
   use shared_parameters, only: COUPLE_WITH_INJECTION_TECHNIQUE,MESH_A_CHUNK_OF_THE_EARTH,INJECTION_TECHNIQUE_TYPE
+
 
   implicit none
 
@@ -71,6 +74,13 @@
   ! timing
   double precision, external :: wtime
   double precision :: time_start,tCPU
+
+  !Elif: test
+  integer,parameter :: IIN_STR = 122 ! could also use e.g. standard IIN from constants.h
+  character(len=570) :: filename
+  integer :: nglob_check
+  double precision :: Vs_user(nglob,1), Vp_user(nglob,1)
+
 
   ! initializes element domain flags
   ispec_is_acoustic(:) = .false.
@@ -135,6 +145,31 @@
 
   ! get MPI starting time
   time_start = wtime()
+
+
+    ! Elif
+    if ( IS_RIDGECREST_VELOCMODEL ) then
+    write(*,*) 'USING RIDGECREST VELOCITY MODEL WITH USER INPUT!'
+    ! Elif: to-do: find directory name inside the code!!
+!    write(filename,'(a,i6.6,a)') &
+!     '/central/groups/enceladus/ELIF/specfem3d_tests/specfem3d_devel_GPU/EXAMPLES/Ridgecrest_test/ridgecrest_velocprofile/proc', &
+!      myrank,'_user_velocity_profile2.bin'
+    write(filename,'(a,i6.6,a)') &
+     './ridgecrest_velocprofile/proc',myrank,'_user_velocity_profile2.bin'
+
+    write(*,*) 'ELIF: filename: ', filename
+    open(unit=61,file=trim(filename),form='unformatted')
+    read(61) nglob_check
+    write(*,*) 'ELIF: nglob_check, nglob: ', nglob_check, nglob
+    read(61) Vs_user
+    read(61) Vp_user
+    close(61)
+    endif
+
+  ! Elif: just a checkpoint before getting into loop
+  if (IS_SCEC_STRATIFIEDMODEL_2021) &
+  write(*,*) "ELIF: USING SCEC VELOCITY MODEL ..."
+  write(*,*) 
 
   ! material properties on all GLL points: taken from material values defined for
   ! each spectral element in input mesh
@@ -235,6 +270,21 @@
                                 c22,c23,c24,c25,c26,c33, &
                                 c34,c35,c36,c44,c45,c46,c55,c56,c66, &
                                 ANISOTROPY)
+
+          ! Elif: testing GPU for custom veloc. profile
+          ! Elif: overwrite Vs and Vp data
+          if ( IS_RIDGECREST_VELOCMODEL ) then
+              vs = real(Vs_user(iglob, 1))
+              vp = real(Vp_user(iglob, 1))
+              ! density after CVM-H wiki using reference
+              rho = (1.6612* vp/1000.0)- 0.47721*(vp/1000.0)**2.0+ &
+                        0.0671*(vp/1000.0)**3.0- 0.0043*(vp/1000.0)**4.0+ &
+                        0.000106* (vp/1000.0)**5.0
+              rho = rho*1000.0
+              if (iglob == 1 .or. iglob==nglob) &
+              write(*,*) 'iglob, nglob, vs, vp, rho', iglob, nglob, vs, vp, rho
+          endif
+
 
           ! stores velocity model
 
@@ -502,7 +552,7 @@
 
   use create_regions_mesh_ext_par
 
-  use constants, only: INJECTION_TECHNIQUE_IS_FK
+  use constants, only: INJECTION_TECHNIQUE_IS_FK,IS_SCEC_STRATIFIEDMODEL_2021
   use shared_parameters, only: COUPLE_WITH_INJECTION_TECHNIQUE,INJECTION_TECHNIQUE_TYPE
 
   implicit none
@@ -518,7 +568,7 @@
   double precision, intent(in) :: xmesh,ymesh,zmesh
   integer, intent(in) :: ispec
 
-  real(kind=CUSTOM_REAL) :: vp,vs,rho,qkappa_atten,qmu_atten
+  real(kind=CUSTOM_REAL) :: vp,vs,rho,qkappa_atten,qmu_atten,zandrews
 
   integer :: idomain_id
 
@@ -575,6 +625,39 @@
                        rho_s,kappa_s,rho_f,kappa_f,eta_f,kappa_fr,mu_fr, &
                        phi,tort,kxx,kxy,kxz,kyy,kyz,kzz, &
                        c11,c12,c13,c14,c15,c16,c22,c23,c24,c25,c26,c33,c34,c35,c36,c44,c45,c46,c55,c56,c66)
+
+
+    if (IS_SCEC_STRATIFIEDMODEL_2021) then
+       
+       !write(*,*) 'USING SCEC VELOCITY MODEL OF ELIF!' 
+       zandrews = abs(zmesh)/ 1000.0_CUSTOM_REAL+ 0.0073215_CUSTOM_REAL ! in km
+
+       if(zandrews < 0.03_CUSTOM_REAL) then
+         vs = 2.206_CUSTOM_REAL* zandrews**0.272_CUSTOM_REAL
+       elseif(zandrews < 0.19_CUSTOM_REAL) then
+         vs = 3.542_CUSTOM_REAL* zandrews**0.407_CUSTOM_REAL
+       elseif(zandrews < 4.0_CUSTOM_REAL) then
+         vs = 2.505_CUSTOM_REAL* zandrews**0.199_CUSTOM_REAL
+       elseif(zandrews < 8.0_CUSTOM_REAL) then
+         vs = 2.927_CUSTOM_REAL* zandrews**0.086_CUSTOM_REAL
+       else
+         vs = 2.927_CUSTOM_REAL* 8.0_CUSTOM_REAL**0.086_CUSTOM_REAL
+       end if
+
+       ! pin surface nodes to 760 m/s
+       vs = max(0.760_CUSTOM_REAL, vs)
+
+       vp = max(1.4_CUSTOM_REAL+ 1.14_CUSTOM_REAL* vs, 1.68_CUSTOM_REAL*vs)
+       rho = 2.4405_CUSTOM_REAL+ 0.10271_CUSTOM_REAL* vs
+
+       rho = rho* 1000.0_CUSTOM_REAL ! convert g/cm^3 to kg/m^3
+       vp = vp* 1000.0_CUSTOM_REAL ! convert km/s to m/s
+       vs = vs* 1000.0_CUSTOM_REAL
+     endif 
+
+
+
+
 
 ! *********************************************************************************
 ! added by Ping Tong (TP / Tong Ping) for the FK3D calculation

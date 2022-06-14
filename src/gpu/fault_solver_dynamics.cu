@@ -283,12 +283,17 @@ void FC_FUNC_(transfer_swf_data_todevice,
               TRANSFER_SWF_DATA_TODEVICE)(long* Fault_pointer,
                                           int *fault_index,
                                           int *NGLOB_FLT,
+                                          int *isTWF,
                                           realw* Dc,
                                           realw* mus,
                                           realw* mud,
                                           realw* T,
                                           realw* C,
-                                          realw* theta) {
+                                          realw* twf_dist,
+                                          realw* theta, 
+                                          realw* twf_r,
+                                          realw* twf_v,
+                                          realw* twf_coh) {
 
   TRACE("transfer_swf_data_todevice");
 
@@ -297,6 +302,12 @@ void FC_FUNC_(transfer_swf_data_todevice,
 
   // checks with rsf flag
   if (Fsolver->RATE_AND_STATE){ exit_on_error("Error with SWF setup, RATE_AND_STATE flag is on; please check fault setup and rerun\n");}
+  
+  // Elif: twf 
+  swf->isTWF = *isTWF;
+  swf->twf_r = *twf_r;
+  swf->twf_v = *twf_v;
+  swf->twf_coh = *twf_coh;
 
   if (*NGLOB_FLT > 0){
     gpuCopy_todevice_realw((void **)&(swf->Dc),Dc,*NGLOB_FLT);
@@ -304,6 +315,7 @@ void FC_FUNC_(transfer_swf_data_todevice,
     gpuCopy_todevice_realw((void **)&(swf->mud),mud,*NGLOB_FLT);
     gpuCopy_todevice_realw((void **)&(swf->Coh),C,*NGLOB_FLT);
     gpuCopy_todevice_realw((void **)&(swf->T),T,*NGLOB_FLT);
+    gpuCopy_todevice_realw((void **)&(swf->twf_dist),twf_dist,*NGLOB_FLT);
     gpuCopy_todevice_realw((void **)&(swf->theta),theta,*NGLOB_FLT);
   }
 
@@ -367,6 +379,7 @@ void FC_FUNC_(transfer_swf_data_tohost,
                                         realw* mud,
                                         realw* T,
                                         realw* C,
+                                        realw* twf_dist,
                                         realw* theta) {
 
   TRACE("transfer_swf_data_tohost");
@@ -380,6 +393,7 @@ void FC_FUNC_(transfer_swf_data_tohost,
     gpuMemcpy_tohost_realw(mud,swf->mud,*NGLOB_FLT);
     gpuMemcpy_tohost_realw(C,swf->Coh,*NGLOB_FLT);
     gpuMemcpy_tohost_realw(T,swf->T,*NGLOB_FLT);
+    gpuMemcpy_tohost_realw(twf_dist,swf->twf_dist,*NGLOB_FLT);
     gpuMemcpy_tohost_realw(theta,swf->theta,*NGLOB_FLT);
   }
 
@@ -506,6 +520,11 @@ void FC_FUNC_(fault_solver_gpu,
                                                             Flt->T0,
                                                             Flt->T,
                                                             swf->Dc,        // slip weakening friction quantities
+                                                            swf->isTWF,
+                                                            swf->twf_dist,
+                                                            swf->twf_r,
+                                                            swf->twf_v,
+                                                            swf->twf_coh,
                                                             swf->theta,
                                                             swf->mus,
                                                             swf->mud,
@@ -515,7 +534,8 @@ void FC_FUNC_(fault_solver_gpu,
                                                             Flt->D,
                                                             Flt->ibulk1,
                                                             Flt->ibulk2,
-                                                            *dt);
+                                                            *dt,
+                                                            *it);
         }
 #endif
 #ifdef USE_HIP
@@ -533,6 +553,11 @@ void FC_FUNC_(fault_solver_gpu,
                                                              Flt->T0,
                                                              Flt->T,
                                                              swf->Dc,        // slip weakening friction quantities
+                                                             swf->isTWF,
+                                                             swf->twf_dist,
+                                                             swf->twf_r,
+                                                             swf->twf_v,
+                                                             swf->twf_coh,
                                                              swf->theta,
                                                              swf->mus,
                                                              swf->mud,
@@ -542,7 +567,8 @@ void FC_FUNC_(fault_solver_gpu,
                                                              Flt->D,
                                                              Flt->ibulk1,
                                                              Flt->ibulk2,
-                                                             *dt);
+                                                             *dt,
+                                                             *it);           
         }
 #endif
 

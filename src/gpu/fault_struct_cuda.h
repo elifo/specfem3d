@@ -43,8 +43,13 @@
 typedef struct swf_type_{
   int kind;
   int healing ;
+  int isTWF;
+  realw twf_r;
+  realw twf_v;
+  realw twf_coh;
   realw *Dc, *mus, *mud;
   realw *theta, *T, *Coh;
+  realw *twf_dist;
 } Swf_type;
 
 

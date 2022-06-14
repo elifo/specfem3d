@@ -483,6 +483,11 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
                                                 realw* T0,
                                                 realw* T,       // for output
                                                 realw* Dc,
+                                                int isTWF,
+                                                realw* twf_dist,
+                                                realw twf_r,
+                                                realw twf_v,
+                                                realw twf_coh,
                                                 realw* theta,
                                                 realw* mus,
                                                 realw* mud,
@@ -492,7 +497,8 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
                                                 realw* D_slip,
                                                 int* ibulk1,
                                                 int* ibulk2,
-                                                realw dt) {
+                                                realw dt,
+                                                realw it) {
 
   int iglob1,iglob2;
   realw Dx,Dy,Dz,Vx,Vy,Vz,Ax,Ay,Az;
@@ -504,6 +510,8 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
   realw mul;
   realw theta_old;
   realw Tnew;
+  realw distl;
+  realw twf_front;
 
   // calculate thread id
   int id = threadIdx.x + (blockIdx.x + blockIdx.y*gridDim.x)*blockDim.x;
@@ -561,6 +569,23 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
   mul = swf_mu(Dcl,musl,mudl,thetal);
 
   theta[id] = thetal;
+
+
+  // Elif: update mu by TWF
+  if (isTWF == 1) {
+    distl = twf_dist[id]; 
+    if (distl <= twf_r) {
+      twf_front = it* dt* twf_v;
+      if (distl <= twf_front- twf_coh){
+        mul = min(mul, mudl);
+     }else if ( (distl > twf_front- twf_coh)  &&  (distl <= twf_front) ){
+        mul = min(mul, mudl+ (distl- (twf_front-twf_coh))/twf_coh* (musl-mudl));
+     }
+    }
+  }
+
+  
+
 
   // update strength
   strength = -mul * (MIN(Tz,0.0f)) + Cohl;

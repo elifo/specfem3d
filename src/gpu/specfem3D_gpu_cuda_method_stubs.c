@@ -343,7 +343,8 @@ void FC_FUNC_(transfer_fault_data_to_device,
                                              realw* invM2,
                                              int* ibulk1,
                                              int* ibulk2,
-                                             int* allow_opening) {}
+                                             int* allow_opening,
+    					     realw* Dtest) {}
 
 void FC_FUNC_(transfer_fault_data_to_host,
               TRANSFER_FAULT_DATA_TO_HOST)(long* Fault_pointer,
@@ -352,7 +353,8 @@ void FC_FUNC_(transfer_fault_data_to_host,
                                            int* NGLOB_FLT,
                                            realw* D,
                                            realw* V,
-                                           realw* T) {}
+                                           realw* T, 
+					   realw* Dtest) {}
 
 void FC_FUNC_(transfer_datat_to_host,
               TRANSFER_DATAT_TO_HOST)(long* Fault_pointer,
@@ -388,6 +390,9 @@ void FC_FUNC_(transfer_swf_data_todevice,
                                           realw* T,
                                           realw* C,
                                           realw* theta) {}
+
+
+
 
 void FC_FUNC_(transfer_rsf_data_tohost,
               TRANSFER_RSF_DATA_TOHOST)(long* Fault_pointer,

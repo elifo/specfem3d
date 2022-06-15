@@ -50,6 +50,7 @@ typedef struct swf_type_{
   realw *Dc, *mus, *mud;
   realw *theta, *T, *Coh;
   realw *twf_dist;
+  realw *Trup;
 } Swf_type;
 
 
@@ -76,7 +77,7 @@ typedef struct fault_ {
 
   Fault_data* output_dataT;
 
-  realw *T0, *T, *B, *V, *D;
+  realw *T0, *T, *B, *V, *D, *Dtest;
   realw *R, *invM1, *invM2, *Z ;
   int *ibulk1,*ibulk2;
 

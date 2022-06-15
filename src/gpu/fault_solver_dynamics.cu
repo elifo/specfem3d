@@ -121,7 +121,8 @@ void FC_FUNC_(transfer_fault_data_to_device,
                                              realw* invM2,
                                              int* ibulk1,
                                              int* ibulk2,
-                                             int* allow_opening) {
+                                             int* allow_opening,
+					     realw* Dtest) {
   TRACE("transfer_fault_data_to_device");
 
   Fault_solver_dynamics* Fsolver = (Fault_solver_dynamics*)(*Fault_pointer);
@@ -142,6 +143,7 @@ void FC_FUNC_(transfer_fault_data_to_device,
     gpuCopy_todevice_realw((void **)&(Flt->Z),Z,(*NGLOB_FLT));
 
     gpuCopy_todevice_realw((void **)&(Flt->D),D,(*NGLOB_FLT)*3);
+    gpuCopy_todevice_realw((void **)&(Flt->Dtest),Dtest,(*NGLOB_FLT)*3);
     gpuCopy_todevice_realw((void **)&(Flt->V),V0,(*NGLOB_FLT)*3);
 
     gpuCopy_todevice_realw((void **)&(Flt->T0),T0,(*NGLOB_FLT)*3);
@@ -167,7 +169,8 @@ void FC_FUNC_(transfer_fault_data_to_host,
                                            int* NGLOB_FLT,
                                            realw* D,
                                            realw* V,
-                                           realw* T) {
+                                           realw* T,
+					   realw* Dtest ) {
 
   TRACE("transfer_fault_data_to_host");
 
@@ -178,6 +181,7 @@ void FC_FUNC_(transfer_fault_data_to_host,
     gpuMemcpy_tohost_realw(V,Flt->V,(*NGLOB_FLT)*3);
     gpuMemcpy_tohost_realw(D,Flt->D,(*NGLOB_FLT)*3);
     gpuMemcpy_tohost_realw(T,Flt->T,(*NGLOB_FLT)*3);
+    gpuMemcpy_tohost_realw(Dtest,Flt->Dtest,(*NGLOB_FLT)*3);
   }
 
   GPU_ERROR_CHECKING("transfer_fault_data_to_host");
@@ -290,6 +294,7 @@ void FC_FUNC_(transfer_swf_data_todevice,
                                           realw* T,
                                           realw* C,
                                           realw* twf_dist,
+                                          realw* Trup,
                                           realw* theta, 
                                           realw* twf_r,
                                           realw* twf_v,
@@ -316,6 +321,7 @@ void FC_FUNC_(transfer_swf_data_todevice,
     gpuCopy_todevice_realw((void **)&(swf->Coh),C,*NGLOB_FLT);
     gpuCopy_todevice_realw((void **)&(swf->T),T,*NGLOB_FLT);
     gpuCopy_todevice_realw((void **)&(swf->twf_dist),twf_dist,*NGLOB_FLT);
+    gpuCopy_todevice_realw((void **)&(swf->Trup),Trup,*NGLOB_FLT);
     gpuCopy_todevice_realw((void **)&(swf->theta),theta,*NGLOB_FLT);
   }
 
@@ -522,6 +528,7 @@ void FC_FUNC_(fault_solver_gpu,
                                                             swf->Dc,        // slip weakening friction quantities
                                                             swf->isTWF,
                                                             swf->twf_dist,
+                                                            swf->Trup,
                                                             swf->twf_r,
                                                             swf->twf_v,
                                                             swf->twf_coh,
@@ -532,6 +539,7 @@ void FC_FUNC_(fault_solver_gpu,
                                                             swf->T,
                                                             Flt->V,
                                                             Flt->D,
+                                                            Flt->Dtest,
                                                             Flt->ibulk1,
                                                             Flt->ibulk2,
                                                             *dt,
@@ -555,6 +563,7 @@ void FC_FUNC_(fault_solver_gpu,
                                                              swf->Dc,        // slip weakening friction quantities
                                                              swf->isTWF,
                                                              swf->twf_dist,
+                                                             swf->Trup,
                                                              swf->twf_r,
                                                              swf->twf_v,
                                                              swf->twf_coh,

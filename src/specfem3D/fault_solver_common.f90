@@ -39,6 +39,7 @@ module fault_solver_common
   type fault_type
     integer :: nspec=0, nglob=0
     real(kind=CUSTOM_REAL), dimension(:,:),   pointer :: T => null(),V => null(),D => null(),coord => null()
+    real(kind=CUSTOM_REAL), dimension(:,:),   pointer :: Dtest => null()
     real(kind=CUSTOM_REAL), dimension(:,:,:), pointer :: R => null()
     real(kind=CUSTOM_REAL), dimension(:),     pointer :: B => null(),invM1 => null(),invM2 => null(),Z => null()
     real(kind=CUSTOM_REAL) :: dt
@@ -65,7 +66,7 @@ module fault_solver_common
     real(kind=CUSTOM_REAL) :: twf_r, twf_v, twf_coh
     real(kind=CUSTOM_REAL), dimension(:), pointer :: Dc => null(), mus => null(), mud => null(), &
                                                      theta => null(), T => null(), C => null(), &
-                                                     twf_dist => null()
+                                                     twf_dist => null(), Trup => null()
   end type swf_type
 
 !  type twf_type

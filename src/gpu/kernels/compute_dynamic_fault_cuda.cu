@@ -485,6 +485,7 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
                                                 realw* Dc,
                                                 int isTWF,
                                                 realw* twf_dist,
+                                                realw* Trup,
                                                 realw twf_r,
                                                 realw twf_v,
                                                 realw twf_coh,
@@ -495,6 +496,7 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
                                                 realw* RT,
                                                 realw* V_slip,
                                                 realw* D_slip,
+                                                realw* Dtest,
                                                 int* ibulk1,
                                                 int* ibulk2,
                                                 realw dt,
@@ -512,6 +514,7 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
   realw Tnew;
   realw distl;
   realw twf_front;
+  realw Vf_oldl,Vf_newl,V_rupt; 
 
   // calculate thread id
   int id = threadIdx.x + (blockIdx.x + blockIdx.y*gridDim.x)*blockDim.x;
@@ -571,6 +574,9 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
   theta[id] = thetal;
 
 
+  // Elif: Trup calculation old velocity
+  Vf_oldl = sqrt(V_slip[3*id]*V_slip[3*id] + V_slip[3*id+1]*V_slip[3*id+1]);
+
   // Elif: update mu by TWF
   if (isTWF == 1) {
     distl = twf_dist[id]; 
@@ -623,6 +629,20 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
   V_slip[id*3+1] = Vy + 0.5f * dt * Ay;
   V_slip[id*3+2] = Vz + 0.5f * dt * Az; // unused, done for completeness
 
+
+
+  // Elif: Trup calculation new velocity
+  Vf_newl = sqrt(V_slip[3*id]*V_slip[3*id] + V_slip[3*id+1]*V_slip[3*id+1]);
+  V_rupt  = 1.0e-3; //read this later
+  if (Dtest[id*3+1] < -90.0e0) { //if once ruptured, dont re-compute
+    if ( Vf_oldl <= V_rupt) {
+       if ( Vf_newl >= V_rupt) {
+           Dtest[id*3] = it*dt - dt* (Vf_newl- V_rupt)/ (Vf_newl- Vf_oldl) ;
+           Dtest[id*3+1] = 99e0; 
+       }
+    }   
+  }
+  
   // Rotate tractions back to (x,y,z) frame
   rotate(R,&Tx,&Ty,&Tz,id,0);
 

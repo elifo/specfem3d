@@ -351,7 +351,6 @@
       call fault_solver_gpu(Mesh_pointer,Fault_pointer,deltat,it)
       ! output results every 500 steps
       if ((mod(it,NT_RECORD_LENGTH) == 0 .or. it == it_end) .and. it /= 0) call fault_output_synchronize_GPU(it)
-      !if ((it == it_end) .and. it /= 0) call fault_output_synchronize_GPU(it)
     endif
   endif
 
@@ -852,7 +851,6 @@
     call fault_solver_gpu(Mesh_pointer,Fault_pointer,deltat,it)
     ! output results every 500 steps
     if ((mod(it,NT_RECORD_LENGTH) == 0 .or. it == it_end) .and. it /= 0) call fault_output_synchronize_GPU(it)
-    !if ((it == it_end) .and. it /= 0) call fault_output_synchronize_GPU(it)
   endif
 
   ! multiplies with inverse of mass matrix (note: rmass has been inverted already)

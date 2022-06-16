@@ -2623,7 +2623,8 @@ contains
     endif
 
     ! output data
-    call SCEC_write_dataT(bc%dataT)
+    !call SCEC_write_dataT(bc%dataT)
+    if ( it == bc%dataT%nt ) call SCEC_write_dataT(bc%dataT)
     if (myrank == 0) call write_dataXZ(bc%dataXZ_all,it,ifault)
   enddo
 

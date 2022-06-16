@@ -344,7 +344,7 @@ void FC_FUNC_(transfer_fault_data_to_device,
                                              int* ibulk1,
                                              int* ibulk2,
                                              int* allow_opening,
-    					     realw* Dtest) {}
+    					     realw* Trup) {}
 
 void FC_FUNC_(transfer_fault_data_to_host,
               TRANSFER_FAULT_DATA_TO_HOST)(long* Fault_pointer,
@@ -354,7 +354,7 @@ void FC_FUNC_(transfer_fault_data_to_host,
                                            realw* D,
                                            realw* V,
                                            realw* T, 
-					   realw* Dtest) {}
+					   realw* Trup) {}
 
 void FC_FUNC_(transfer_datat_to_host,
               TRANSFER_DATAT_TO_HOST)(long* Fault_pointer,

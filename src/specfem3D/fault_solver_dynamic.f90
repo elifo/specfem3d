@@ -356,7 +356,7 @@ contains
                                        bc%invM1, bc%invM2, &
                                        bc%ibulk1, bc%ibulk2, &
                                        bc%allow_opening, &
-                                       bc%Dtest)
+                                       bc%Trup)
   enddo
 
   end subroutine fault_transfer_data_GPU
@@ -366,7 +366,6 @@ contains
   subroutine init_one_fault(bc,IIN_BIN,IIN_PAR,dt_real,NT,iflt,myrank)
 
   use constants, only: PARALLEL_FAULT
-  use specfem_par, only: GPU_MODE
 
   implicit none
   type(bc_dynandkinflt_type), intent(inout) :: bc
@@ -400,12 +399,12 @@ contains
     if (ier /= 0) call exit_MPI_without_rank('error allocating array 1364')
     allocate(bc%V(3,bc%nglob),stat=ier)
     if (ier /= 0) call exit_MPI_without_rank('error allocating array 1365')
-    allocate(bc%Dtest(3,bc%nglob),stat=ier)
+    allocate(bc%Trup(2,bc%nglob),stat=ier)
     bc%T(:,:) = 0.0_CUSTOM_REAL
     bc%D(:,:) = 0.0_CUSTOM_REAL
     bc%V(:,:) = 0.0_CUSTOM_REAL
-    bc%Dtest(:,:) = 0.0_CUSTOM_REAL
-    bc%Dtest(2,:) = -99.0_CUSTOM_REAL
+    bc%Trup(:,:) = 0.0_CUSTOM_REAL
+    bc%Trup(2,:) = -99.0_CUSTOM_REAL
 
     ! Set initial fault stresses
     allocate(bc%T0(3,bc%nglob),stat=ier)
@@ -519,11 +518,6 @@ contains
                                  (bc%coord(3,i)-twf_z)**2)**0.5
         enddo
         
-        ! if GPU mode, allocate Trup
-        if (GPU_MODE) then
-             allocate( bc%swf%Trup(bc%nglob) ,stat=ier)
-             if (ier /= 0) call exit_MPI_without_rank('error allocating array 1371')
-        endif
 
       ! Distance-dependent Dc function
       ! Elif (01/2021)
@@ -1480,7 +1474,7 @@ contains
 
       ! copies arrays to GPU
       call transfer_swf_data_todevice(Fault_pointer, ifault-1, bc%nglob, g%isTWF,  &
-                                      g%Dc,g%mus,g%mud,g%T,g%C,g%twf_dist,g%Trup,  & 
+                                      g%Dc,g%mus,g%mud,g%T,g%C,g%twf_dist,  & 
                                       g%theta, g%twf_r, g%twf_v, g%twf_coh)
     endif
   enddo
@@ -2048,9 +2042,8 @@ contains
     dataXZ%ycoord => bc%coord(2,:)
     dataXZ%zcoord => bc%coord(3,:)
     
-    if (.not. RATE_AND_STATE  .and.  GPU_MODE) then
-       !dataXZ%tRUP => bc%swf%Trup
-       dataXZ%tRUP => bc%Dtest(1,:)
+    if ( GPU_MODE) then
+       dataXZ%tRUP => bc%Trup(1,:)
     else 
        allocate(dataXZ%tRUP(bc%nglob),stat=ier)
        if (ier /= 0) call exit_MPI_without_rank('error allocating array 1402')
@@ -2619,8 +2612,7 @@ contains
     bc => faults(ifault)
 
     ! copies data back to CPU
-    !call transfer_fault_data_to_host(Fault_pointer, ifault-1, bc%nspec, bc%nglob, bc%D, bc%V, bc%T)
-    call transfer_fault_data_to_host(Fault_pointer, ifault-1, bc%nspec, bc%nglob, bc%D, bc%V, bc%T, bc%Dtest)
+    call transfer_fault_data_to_host(Fault_pointer, ifault-1, bc%nspec, bc%nglob, bc%D, bc%V, bc%T, bc%Trup)
 
     ! copies dataT back to CPU
     call transfer_dataT_to_host(Fault_pointer, ifault-1, bc%dataT%dat, it)

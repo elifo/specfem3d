@@ -485,7 +485,6 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
                                                 realw* Dc,
                                                 int isTWF,
                                                 realw* twf_dist,
-                                                realw* Trup,
                                                 realw twf_r,
                                                 realw twf_v,
                                                 realw twf_coh,
@@ -496,7 +495,7 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
                                                 realw* RT,
                                                 realw* V_slip,
                                                 realw* D_slip,
-                                                realw* Dtest,
+                                                realw* Trup,
                                                 int* ibulk1,
                                                 int* ibulk2,
                                                 realw dt,
@@ -634,11 +633,11 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
   // Elif: Trup calculation new velocity
   Vf_newl = sqrt(V_slip[3*id]*V_slip[3*id] + V_slip[3*id+1]*V_slip[3*id+1]);
   V_rupt  = 1.0e-3; //read this later
-  if (Dtest[id*3+1] < -90.0e0) { //if once ruptured, dont re-compute
+  if (Trup[id*2+1] < -90.0e0) { //if once ruptured, dont re-compute
     if ( Vf_oldl <= V_rupt) {
        if ( Vf_newl >= V_rupt) {
-           Dtest[id*3] = it*dt - dt* (Vf_newl- V_rupt)/ (Vf_newl- Vf_oldl) ;
-           Dtest[id*3+1] = 99e0; 
+           Trup[id*2] = it*dt - dt* (Vf_newl- V_rupt)/ (Vf_newl- Vf_oldl) ;
+           Trup[id*2+1] = 99e0; 
        }
     }   
   }

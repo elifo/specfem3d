@@ -63,6 +63,7 @@ def unpack_list(fault_list):
             list_fault.append(j)
     return list_fault
 
+
 def save_elements_nodes(name,quads_fault_u,quads_fault_d):
     import time
 
@@ -167,82 +168,4 @@ def save_elements_nodes(name,quads_fault_u,quads_fault_d):
     print ('Elapsed time (min): ', elapsed/60.0)
     print('## done fault file: ',name)
     print('')    
-
-
-# def save_elements_nodes(name,quads_fault_u,quads_fault_d):
-
-#   import time
-#   t_beg = time.time()
-
-#   print ('ELIF: debug mode on [save_elements_nodes]...')
-#   print('')
-#   print('## save fault nodes elements: file = ',name)
-#   print('##')
-#   fault_file = open(name,'w')
-#   txt = ''
-#   list_hex = cubit.parse_cubit_list('hex','all')
-
-#   # number of fault elements up/down
-#   txt = '%10i %10i\n' % (len(quads_fault_u),len(quads_fault_d))
-#   fault_file.write(txt)
-
-#   dic_quads_fault_u = dict(zip(quads_fault_u,quads_fault_u))
-#   dic_quads_fault_d = dict(zip(quads_fault_d,quads_fault_d))
-
-#   # FAULT SIDE DOWN
-#   # fault_file.write('upsurface')
-#   print ('Getting into loop, len(list_hex): ', len(list_hex))
-#   for ihex, h in enumerate(list_hex):
-#       faces = cubit.get_sub_elements('hex',h,2)
-#       for f in faces:
-#           if f in dic_quads_fault_d.keys():
-#               cubit.silent_cmd('group "nf_d" add Node in face '+str(f))
-#           if f in dic_quads_fault_u.keys():
-#               cubit.silent_cmd('group "nf_u" add Node in face '+str(f))           
-#       #
-#       group1 = cubit.get_id_from_name("nf_d")
-#       nodes_d = []
-#       if not group1 == 0:
-#           nodes_d = cubit.get_group_nodes(group1)
-#           cubit.silent_cmd('del group '+ str(group1))
-#       #
-#       group1 = cubit.get_id_from_name("nf_u")
-#       nodes_u = []
-#       if not group1 == 0:
-#           nodes_u = cubit.get_group_nodes(group1)
-#           cubit.silent_cmd('del group '+ str(group1))
-#       #
-#       nodes = nodes_d
-#       if len(nodes) > 0:
-#           ngnod2d = len(nodes)
-#           if ngnod2d == 9:
-#               #kangchen added
-#               #txt='%10i %10i %10i %10i %10i\n' % (h,nodes[0],nodes[1],nodes[2],nodes[3])
-#               txt = '%10i %10i %10i %10i %10i %10i %10i %10i %10i %10i\n' % (h,nodes[0],\
-#                     nodes[1],nodes[2],nodes[3],nodes[4],nodes[5],nodes[6],nodes[7],nodes[8])
-#           else:
-#               txt = '%10i %10i %10i %10i %10i \n' % (h,nodes[0],nodes[1],nodes[2],nodes[3])
-#           fault_file.write(txt)
-#       #
-#       nodes = nodes_u
-#       if len(nodes) > 0:
-#           ngnod2d = len(nodes)
-#           if ngnod2d == 9:
-#               #kangchen added
-#               #txt='%10i %10i %10i %10i %10i\n' % (h,nodes[0],nodes[1],nodes[2],nodes[3])
-#               txt = '%10i %10i %10i %10i %10i %10i %10i %10i %10i %10i\n' % (h,nodes[0],\
-#                     nodes[1],nodes[2],nodes[3],nodes[4],nodes[5],nodes[6],nodes[7],nodes[8])
-#           else:
-#               txt = '%10i %10i %10i %10i %10i \n' % (h,nodes[0],nodes[1],nodes[2],nodes[3])
-#           fault_file.write(txt)       
-#       #
-#   #
-#   fault_file.close()
-
-#   elapsed = time.time() - t_beg
-#   print ('save_fault_nodes_elements.fault_input')
-#   print ('Elapsed time (s):   ', elapsed)
-#   print ('Elapsed time (min): ', elapsed/60.0)
-#   print('## done fault file: ',name)
-#   print('')
-
+##

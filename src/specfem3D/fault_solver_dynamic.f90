@@ -332,7 +332,9 @@ contains
   do ifault = 1,Nfaults
     bc => faults(ifault)
     ! using a record length nt (500), which will be used also for outputting records
-    call initialize_fault_data_gpu(Fault_pointer, ifault-1, bc%dataT%iglob, bc%dataT%npoin, bc%dataT%ndat, NT_RECORD_LENGTH)
+    !call initialize_fault_data_gpu(Fault_pointer, ifault-1, bc%dataT%iglob, bc%dataT%npoin, bc%dataT%ndat, NT_RECORD_LENGTH)
+    call initialize_fault_data_gpu(Fault_pointer, ifault-1, bc%dataT%iglob, bc%dataT%npoin, bc%dataT%ndat, &
+                                   NT_RECORD_LENGTH)
   enddo
 
   ! copies fault data fields to GPU
@@ -356,7 +358,9 @@ contains
                                        bc%invM1, bc%invM2, &
                                        bc%ibulk1, bc%ibulk2, &
                                        bc%allow_opening, &
-                                       bc%Trup)
+                                       bc%Trup, &
+                                       bc%STF, &
+                                       bc%NT)
   enddo
 
   end subroutine fault_transfer_data_GPU
@@ -400,11 +404,14 @@ contains
     allocate(bc%V(3,bc%nglob),stat=ier)
     if (ier /= 0) call exit_MPI_without_rank('error allocating array 1365')
     allocate(bc%Trup(2,bc%nglob),stat=ier)
+    allocate(bc%STF(bc%nglob,NT),stat=ier)
     bc%T(:,:) = 0.0_CUSTOM_REAL
     bc%D(:,:) = 0.0_CUSTOM_REAL
     bc%V(:,:) = 0.0_CUSTOM_REAL
     bc%Trup(:,:) = 0.0_CUSTOM_REAL
     bc%Trup(2,:) = -99.0_CUSTOM_REAL
+    bc%STF(:,:) = 0.0_CUSTOM_REAL
+    bc%NT =NT
 
     ! Set initial fault stresses
     allocate(bc%T0(3,bc%nglob),stat=ier)
@@ -2114,6 +2121,8 @@ contains
       if (ier /= 0) call exit_MPI_without_rank('error allocating array 1416')
       allocate(bc%dataXZ_all%sta(npoin_all),stat=ier)
       if (ier /= 0) call exit_MPI_without_rank('error allocating array 1417')
+      allocate(bc%dataXZ_all%STF(npoin_all, bc%NT),stat=ier)
+      if (ier /= 0) call exit_MPI_without_rank('error allocating array 1418')
     else
       ! dummy allocations (for subroutine arguments)
       bc%dataXZ_all%npoin = 0
@@ -2171,6 +2180,7 @@ contains
   implicit none
 
   type(bc_dynandkinflt_type), intent(inout) :: bc
+  integer :: i  
 
   ! collects data from all processes onto main process arrays
   call gatherv_all_cr(bc%dataXZ%t1,bc%dataXZ%npoin,bc%dataXZ_all%t1,bc%npoin_perproc,bc%poin_offset,bc%dataXZ_all%npoin,NPROC)
@@ -2184,7 +2194,17 @@ contains
   call gatherv_all_cr(bc%dataXZ%tPZ,bc%dataXZ%npoin,bc%dataXZ_all%tPZ,bc%npoin_perproc,bc%poin_offset,bc%dataXZ_all%npoin,NPROC)
   call gatherv_all_cr(bc%dataXZ%stg,bc%dataXZ%npoin,bc%dataXZ_all%stg,bc%npoin_perproc,bc%poin_offset,bc%dataXZ_all%npoin,NPROC)
   call gatherv_all_cr(bc%dataXZ%sta,bc%dataXZ%npoin,bc%dataXZ_all%sta,bc%npoin_perproc,bc%poin_offset,bc%dataXZ_all%npoin,NPROC)
+  if ( size(bc%STF,1) > 0 ) then
+  write(*,*) 'size(bc%STF), bc%dataXZ_all%STF', size(bc%STF,1), size(bc%STF,2), &
+                            size(bc%dataXZ_all%STF,1) , &
+                            size(bc%dataXZ_all%STF,2)
+  do i=1, size(bc%STF,2) 
+    call gatherv_all_cr(bc%STF(:,i),bc%dataXZ%npoin,bc%dataXZ_all%STF(:,i),bc%npoin_perproc,bc%poin_offset,&
+                        bc%dataXZ_all%npoin,NPROC)
+  enddo
+  endif
 
+ 
   end subroutine gather_dataXZ
 
 !---------------------------------------------------------------
@@ -2612,7 +2632,7 @@ contains
     bc => faults(ifault)
 
     ! copies data back to CPU
-    call transfer_fault_data_to_host(Fault_pointer, ifault-1, bc%nspec, bc%nglob, bc%D, bc%V, bc%T, bc%Trup)
+    call transfer_fault_data_to_host(Fault_pointer, ifault-1, bc%nspec, bc%nglob, bc%D, bc%V, bc%T, bc%Trup, bc%STF,bc%NT)
 
     ! copies dataT back to CPU
     call transfer_dataT_to_host(Fault_pointer, ifault-1, bc%dataT%dat, it)
@@ -2625,6 +2645,7 @@ contains
     ! output data
     !call SCEC_write_dataT(bc%dataT)
     if ( it == bc%dataT%nt ) call SCEC_write_dataT(bc%dataT)
+    if ( it == bc%dataT%nt .and. myrank == 0) call write_STF_GPU(bc%dataXZ_all%STF,bc%NT,bc%dataXZ_all%npoin)
     if (myrank == 0) call write_dataXZ(bc%dataXZ_all,it,ifault)
   enddo
 

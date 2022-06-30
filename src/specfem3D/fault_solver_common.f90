@@ -37,9 +37,10 @@ module fault_solver_common
   implicit none
 
   type fault_type
-    integer :: nspec=0, nglob=0
+    integer :: nspec=0, nglob=0, NT=0
     real(kind=CUSTOM_REAL), dimension(:,:),   pointer :: T => null(),V => null(),D => null(),coord => null()
     real(kind=CUSTOM_REAL), dimension(:,:),   pointer :: Trup => null()
+    real(kind=CUSTOM_REAL), dimension(:,:),   pointer :: STF => null()
     real(kind=CUSTOM_REAL), dimension(:,:,:), pointer :: R => null()
     real(kind=CUSTOM_REAL), dimension(:),     pointer :: B => null(),invM1 => null(),invM2 => null(),Z => null()
     real(kind=CUSTOM_REAL) :: dt
@@ -56,6 +57,7 @@ module fault_solver_common
                                                      v1 => null(), v2 => null(), &
                                                      t1 => null(), t2 => null(), t3 => null(), tRUP => null(), tPZ => null()
     real(kind=CUSTOM_REAL), dimension(:), pointer :: xcoord => null(), ycoord => null(), zcoord => null()
+    real(kind=CUSTOM_REAL), dimension(:,:), pointer :: STF => null()
     integer                                       :: npoin=0
   end type dataXZ_type
 
@@ -124,7 +126,7 @@ module fault_solver_common
             initialize_fault, get_jump, get_weighted_jump, rotate, add_BT, &
             dataT_type, init_dataT, store_dataT, SCEC_write_dataT, &
             Kelvin_Voigt_eta, USE_KELVIN_VOIGT_DAMPING, &
-            fault_check_mesh_resolution
+            fault_check_mesh_resolution, write_STF_GPU
 
 contains
 
@@ -132,7 +134,7 @@ contains
 
   subroutine initialize_fault (bc,IIN_BIN)
 
-  use constants, only: PARALLEL_FAULT,NDIM,NGLLSQUARE
+  use constants, only: PARALLEL_FAULT,NDIM,NGLLSQUARE,NGLLX,NGLLY,NGLLZ
 
   use specfem_par, only: NPROC,DT,NGLOB_AB, &
     num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
@@ -242,7 +244,8 @@ contains
         bc%B(k) = bc%B(k) + jacobian2Dw(ij,e)
       enddo
     enddo
-  else
+    
+  else          
     ! dummy allocations (for subroutine arguments)
     allocate(bc%coord(NDIM,1))
   endif
@@ -771,6 +774,44 @@ contains
   end subroutine SCEC_write_dataT
 
 !------------------------------------------------------------------------
+  
+  subroutine write_STF_GPU(STF, NT, NGLOB)
+
+  use specfem_par, only: OUTPUT_FILES
+
+  implicit none
+
+  integer, intent(in) :: NT, NGLOB
+  real(kind=CUSTOM_REAL), dimension(NGLOB,NT),intent(in) :: STF
+
+  ! local parameters
+  integer :: i,iol
+  !real(kind=CUSTOM_REAL) :: moment_rate(NT) 
+  integer, parameter :: IOUT_SC = 121 !WARNING: not very robust.
+
+  write(*,*) 'ELIF::write_STF_GPU, NT,NGLOB: ', NT, NGLOB
+  write(*,*) size(STF,1), size(STF,2)
+  
+  ! write out
+!  open(IOUT_SC,file=trim(OUTPUT_FILES)//'STF.dat',status='replace') 
+!  do i=1,NT
+!     write(IOUT_SC,*) STF(:,i)
+!  enddo
+!  close(IOUT_SC)
+
+  ! bin file
+  INQUIRE( IOLENGTH=iol ) STF(:,1)
+  write(*,*) 'iol: ', iol
+  open(IOUT_SC,file=trim(OUTPUT_FILES)//'STF.dat',status='replace',access='direct',recl=iol) 
+  do i=1,NT
+     write(IOUT_SC,rec=i) STF(:,i)
+  enddo
+  close(IOUT_SC)
+
+
+  end subroutine write_STF_GPU
+!------------------------------------------------------------------------
+
 
   subroutine fault_check_mesh_resolution()
 

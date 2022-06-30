@@ -73,10 +73,11 @@ typedef struct fault_ {
   // fault mesh resolution
   int NSPEC_FLT;
   int NGLOB_FLT;
+  int NT;
 
   Fault_data* output_dataT;
 
-  realw *T0, *T, *B, *V, *D, *Trup;
+  realw *T0, *T, *B, *V, *D, *Trup, *STF;
   realw *R, *invM1, *invM2, *Z ;
   int *ibulk1,*ibulk2;
 

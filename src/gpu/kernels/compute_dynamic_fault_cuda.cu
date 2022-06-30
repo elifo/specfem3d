@@ -496,10 +496,12 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
                                                 realw* V_slip,
                                                 realw* D_slip,
                                                 realw* Trup,
+                                                realw* STF,
+                                                int NT,
                                                 int* ibulk1,
                                                 int* ibulk2,
                                                 realw dt,
-                                                realw it) {
+                                                int it) {
 
   int iglob1,iglob2;
   realw Dx,Dy,Dz,Vx,Vy,Vz,Ax,Ay,Az;
@@ -517,6 +519,9 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
 
   // calculate thread id
   int id = threadIdx.x + (blockIdx.x + blockIdx.y*gridDim.x)*blockDim.x;
+
+  // Elif: time iteration mapping
+  int j_time = (it - 1)%NT ;
 
   // check if anything to do
   if (id >= NGLOB_FLT) return;
@@ -543,6 +548,7 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
   get_jump(Displ, &Dx, &Dy, &Dz, iglob1, iglob2);
   get_jump(Veloc, &Vx, &Vy, &Vz, iglob1, iglob2);
   get_weighted_jump(MxAccel, invM1[id], invM2[id], &Ax, &Ay, &Az, iglob1, iglob2);
+
 
   // rotate to fault frame
   rotate(R,&Dx,&Dy,&Dz,id,1);
@@ -641,7 +647,11 @@ __global__  void compute_dynamic_fault_cuda_swf(realw* Displ,   // this is a mes
        }
     }   
   }
-  
+ 
+  // Elif: prepare stf
+  //STF[j_time*NGLOB_FLT+id] = B[id]* Vf_newl; 
+  STF[j_time*NGLOB_FLT+id] = Vf_newl; 
+ 
   // Rotate tractions back to (x,y,z) frame
   rotate(R,&Tx,&Ty,&Tz,id,0);
 

@@ -2051,6 +2051,7 @@ contains
     
     if ( GPU_MODE) then
        dataXZ%tRUP => bc%Trup(1,:)
+       dataXZ%STF => bc%STF
     else 
        allocate(dataXZ%tRUP(bc%nglob),stat=ier)
        if (ier /= 0) call exit_MPI_without_rank('error allocating array 1402')
@@ -2139,7 +2140,8 @@ contains
                bc%dataXZ_all%tRUP(1), &
                bc%dataXZ_all%tPZ(1), &
                bc%dataXZ_all%stg(1), &
-               bc%dataXZ_all%sta(1))
+               bc%dataXZ_all%sta(1),&
+               bc%dataXZ_all%STF(1,1))
     endif
 
 !note: crayftn compiler warns about possible copy which may slow down the code for dataXZ%npoin,dataXZ%xcoord,..
@@ -2180,7 +2182,7 @@ contains
   implicit none
 
   type(bc_dynandkinflt_type), intent(inout) :: bc
-  integer :: i  
+  !integer :: i  
 
   ! collects data from all processes onto main process arrays
   call gatherv_all_cr(bc%dataXZ%t1,bc%dataXZ%npoin,bc%dataXZ_all%t1,bc%npoin_perproc,bc%poin_offset,bc%dataXZ_all%npoin,NPROC)
@@ -2194,16 +2196,6 @@ contains
   call gatherv_all_cr(bc%dataXZ%tPZ,bc%dataXZ%npoin,bc%dataXZ_all%tPZ,bc%npoin_perproc,bc%poin_offset,bc%dataXZ_all%npoin,NPROC)
   call gatherv_all_cr(bc%dataXZ%stg,bc%dataXZ%npoin,bc%dataXZ_all%stg,bc%npoin_perproc,bc%poin_offset,bc%dataXZ_all%npoin,NPROC)
   call gatherv_all_cr(bc%dataXZ%sta,bc%dataXZ%npoin,bc%dataXZ_all%sta,bc%npoin_perproc,bc%poin_offset,bc%dataXZ_all%npoin,NPROC)
-  if ( size(bc%STF,1) > 0 ) then
-  write(*,*) 'size(bc%STF), bc%dataXZ_all%STF', size(bc%STF,1), size(bc%STF,2), &
-                            size(bc%dataXZ_all%STF,1) , &
-                            size(bc%dataXZ_all%STF,2)
-  do i=1, size(bc%STF,2) 
-    call gatherv_all_cr(bc%STF(:,i),bc%dataXZ%npoin,bc%dataXZ_all%STF(:,i),bc%npoin_perproc,bc%poin_offset,&
-                        bc%dataXZ_all%npoin,NPROC)
-  enddo
-  endif
-
  
   end subroutine gather_dataXZ
 
@@ -2645,7 +2637,7 @@ contains
     ! output data
     !call SCEC_write_dataT(bc%dataT)
     if ( it == bc%dataT%nt ) call SCEC_write_dataT(bc%dataT)
-    if ( it == bc%dataT%nt .and. myrank == 0) call write_STF_GPU(bc%dataXZ_all%STF,bc%NT,bc%dataXZ_all%npoin)
+    if ( it == bc%NT ) call write_STF_GPU(bc%B,bc%mubulk1,bc%mubulk2,bc%STF,bc%NT,bc%nglob,myrank)
     if (myrank == 0) call write_dataXZ(bc%dataXZ_all,it,ifault)
   enddo
 

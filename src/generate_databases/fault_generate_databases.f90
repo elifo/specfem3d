@@ -44,7 +44,8 @@ module fault_generate_databases
   type fault_db_type
     private
     real(kind=CUSTOM_REAL), dimension(:), pointer :: xcoordbulk1,ycoordbulk1,zcoordbulk1, &
-                                                     xcoordbulk2,ycoordbulk2,zcoordbulk2
+                                                     xcoordbulk2,ycoordbulk2,zcoordbulk2, &
+                                                     mubulk1, mubulk2
     real(kind=CUSTOM_REAL), dimension(:,:), pointer:: jacobian2Dw
     real(kind=CUSTOM_REAL), dimension(:,:,:), pointer:: normal
     real(kind=CUSTOM_REAL) :: eta
@@ -85,7 +86,7 @@ module fault_generate_databases
                  iface5_corner_ijk,iface6_corner_ijk /),(/3,4,6/))   ! all faces
 
   public :: fault_read_input, fault_setup, fault_save_arrays_test, fault_save_arrays, fault_save_arrays_txt, &
-            nodes_coords_open, nnodes_coords_open, ANY_FAULT_IN_THIS_PROC, ANY_FAULT
+            nodes_coords_open, nnodes_coords_open, ANY_FAULT_IN_THIS_PROC, ANY_FAULT, fault_set_material
 
 contains
 
@@ -520,13 +521,13 @@ contains
 
   subroutine save_fault_xyzcoord_ibulk(fdb)
 
-  use create_regions_mesh_ext_par, only: xstore_unique,ystore_unique,zstore_unique
+  use create_regions_mesh_ext_par, only: xstore_unique,ystore_unique,zstore_unique,mustore
 
   implicit none
   type(fault_db_type), intent(inout) :: fdb
 
   ! local parameters
-  integer :: K1, K2, i, ier
+  integer :: K1, K2, i, ier, e, ie, je, ke, k
 
   allocate( fdb%xcoordbulk1(fdb%nglob) ,stat=ier)
   if (ier /= 0) call exit_MPI_without_rank('error allocating array 883')
@@ -540,6 +541,10 @@ contains
   if (ier /= 0) call exit_MPI_without_rank('error allocating array 887')
   allocate( fdb%zcoordbulk2(fdb%nglob) ,stat=ier)
   if (ier /= 0) call exit_MPI_without_rank('error allocating array 888')
+  allocate( fdb%mubulk1(fdb%nglob) ,stat=ier)
+  if (ier /= 0) call exit_MPI_without_rank('error allocating array 889')
+  allocate( fdb%mubulk2(fdb%nglob) ,stat=ier)
+  if (ier /= 0) call exit_MPI_without_rank('error allocating array 890')
   fdb%xcoordbulk1(:) = 0.0_CUSTOM_REAL; fdb%ycoordbulk1(:) = 0.0_CUSTOM_REAL; fdb%zcoordbulk1(:) = 0.0_CUSTOM_REAL
   fdb%xcoordbulk2(:) = 0.0_CUSTOM_REAL; fdb%ycoordbulk2(:) = 0.0_CUSTOM_REAL; fdb%zcoordbulk2(:) = 0.0_CUSTOM_REAL
 
@@ -553,6 +558,8 @@ contains
       fdb%xcoordbulk2(i) = xstore_unique(K2)
       fdb%ycoordbulk2(i) = ystore_unique(K2)
       fdb%zcoordbulk2(i) = zstore_unique(K2)
+  enddo
+
   enddo
 
   end subroutine save_fault_xyzcoord_ibulk
@@ -722,6 +729,7 @@ contains
     write(IOUT,*) f%ibulk2(k),f%xcoordbulk2(k),f%ycoordbulk2(k),f%zcoordbulk2(k)
   enddo
 
+
   end subroutine save_one_fault_test
 
 !=================================================================================
@@ -806,6 +814,10 @@ contains
   write(IOUT) f%ispec1
   write(IOUT) f%ispec2
 
+  ! Elif: store mu values
+  write(IOUT) f%mubulk1 
+  write(IOUT) f%mubulk2 
+ 
   end subroutine save_one_fault_bin
 
 !====================================================================================
@@ -864,10 +876,66 @@ contains
     write(IOUT,*) f%ibulk2(k),f%xcoordbulk2(k),f%ycoordbulk2(k),f%zcoordbulk2(k)
   enddo
 
-end subroutine save_one_fault_test_txt
+  end subroutine save_one_fault_test_txt
 !====================================================================================
 
+  subroutine fault_set_material(nspec,mustore)
 
+  implicit none
+  
+  integer, intent(in) :: nspec
+  real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLY,NGLLZ,nspec), intent(in) :: mustore
 
+  ! local parameters
+  integer :: iflt
+
+  ! only partitions with a fault need to setup
+  if (.not. ANY_FAULT_IN_THIS_PROC) return
+
+  do iflt = 1,size(fault_db)
+
+    ! checks if anything to do on this fault
+    if (fault_db(iflt)%nspec == 0) cycle
+   
+    call save_fault_mu(fault_db(iflt), nspec, mustore)
+
+  enddo
+  
+  end subroutine fault_set_material
+!====================================================================================
+
+  subroutine save_fault_mu(fdb, nspec, mustore)
+
+  implicit none
+
+  type(fault_db_type), intent(inout) :: fdb
+  integer, intent(in) :: nspec
+  real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLY,NGLLZ,nspec), intent(in) :: mustore
+
+  integer :: e, k, ie, je, ke, K1, K2   
+
+  write(*,*)  'ELIF: fault_set_mu: ', size(mustore,1)
+  do e = 1, fdb%nspec
+    do k = 1, NGLLSQUARE
+      ie = fdb%ijk1(1,k,e)
+      je = fdb%ijk1(2,k,e)
+      ke = fdb%ijk1(3,k,e)
+      K1 = fdb%ibool1(k,e)
+      fdb%mubulk1(K1) = mustore(ie,je,ke,fdb%ispec1(e))
+
+      ie = fdb%ijk2(1,k,e)
+      je = fdb%ijk2(2,k,e)
+      ke = fdb%ijk2(3,k,e)
+      K2 = fdb%ibool2(k,e)
+      fdb%mubulk2(K2) = mustore(ie,je,ke,fdb%ispec2(e))
+
+   enddo
+  enddo
+ 
+!  write(*,*) 'ELIF: mubulk1: ', fdb%mubulk1(1:50)
+!  write(*,*) 'ELIF: mubulk2: ', fdb%mubulk1(1:50)
+
+  end subroutine save_fault_mu
+!====================================================================================
 
 end module fault_generate_databases

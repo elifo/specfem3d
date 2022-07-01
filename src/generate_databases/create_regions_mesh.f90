@@ -59,7 +59,7 @@
                           fault_save_arrays,fault_save_arrays_test, &
                           fault_save_arrays_txt, &
                           nnodes_coords_open,nodes_coords_open,ANY_FAULT_IN_THIS_PROC, &
-                          ANY_FAULT
+                          ANY_FAULT, fault_set_material 
 
   implicit none
 
@@ -203,6 +203,9 @@
     call flush_IMAIN()
   endif
   call get_model()
+
+  ! store fault mu
+  call fault_set_material(nspec,mustore)   
 
   ! sets up acoustic-elastic-poroelastic coupling surfaces
   call synchronize_all()

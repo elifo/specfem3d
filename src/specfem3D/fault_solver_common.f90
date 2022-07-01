@@ -46,6 +46,7 @@ module fault_solver_common
     real(kind=CUSTOM_REAL) :: dt
     integer, dimension(:), pointer :: ibulk1 => null(), ibulk2 => null()  ! global nodes id
     integer, dimension(:), pointer :: ispec1 => null(), ispec2 => null()  ! fault elements id
+    real(kind=CUSTOM_REAL), dimension(:), pointer :: mubulk1 => null(), mubulk2 => null()  ! fault mu
   end type fault_type
 
   ! outputs(dyn) /inputs (kind) at selected times for all fault nodes:
@@ -205,6 +206,11 @@ contains
     ! fault elements ispec (touching lower surface)
     allocate(bc%ispec2(bc%nspec),stat=ier)
     if (ier /= 0) call exit_MPI_without_rank('error allocating array 2171')
+    ! fault rigidity mu=rho*Vs*Vs
+    allocate(bc%mubulk1(bc%nglob),stat=ier)
+    if (ier /= 0) call exit_MPI_without_rank('error allocating array 2172')
+    allocate(bc%mubulk2(bc%nglob),stat=ier)
+    if (ier /= 0) call exit_MPI_without_rank('error allocating array 2173')
 
     read(IIN_BIN) ibool1
     read(IIN_BIN) jacobian2Dw
@@ -224,6 +230,10 @@ contains
     read(IIN_BIN,iostat=ier) bc%ispec2
     ! dummy value if not stored
     if (ier /= 0) bc%ispec2(:) = 0
+
+    ! Elif: read mu stored
+    read(IIN_BIN) bc%mubulk1
+    read(IIN_BIN) bc%mubulk2
 
     ! done reading faults_db.bin file, no more records in read(IIN_BIN).. from here on
 
@@ -774,40 +784,42 @@ contains
   end subroutine SCEC_write_dataT
 
 !------------------------------------------------------------------------
-  
-  subroutine write_STF_GPU(STF, NT, NGLOB)
+ ! Write out source time function (Elif, 06/22)
+ ! I could not assemble STF matrix of all procs
+ ! Current version writes one file per proc.
+  subroutine write_STF_GPU(B, mu1, mu2, STF, NT, NGLOB, myrank)
 
   use specfem_par, only: OUTPUT_FILES
 
   implicit none
 
-  integer, intent(in) :: NT, NGLOB
+  integer, intent(in) :: NT, NGLOB, myrank
   real(kind=CUSTOM_REAL), dimension(NGLOB,NT),intent(in) :: STF
+  real(kind=CUSTOM_REAL), dimension(NGLOB),intent(in) :: B, mu1, mu2
+  character(len=5):: iproc
 
   ! local parameters
-  integer :: i,iol
-  !real(kind=CUSTOM_REAL) :: moment_rate(NT) 
+  integer :: i
   integer, parameter :: IOUT_SC = 121 !WARNING: not very robust.
+  real(kind=CUSTOM_REAL) :: mu(NGLOB)
 
-  write(*,*) 'ELIF::write_STF_GPU, NT,NGLOB: ', NT, NGLOB
-  write(*,*) size(STF,1), size(STF,2)
+  write(*,*) 'ELIF::write_STF_GPU, NT,NGLOB, myrank: ', NT, NGLOB, myrank
+  write(*,*) 'size(STF,1), size(STF,2): ', size(STF,1), size(STF,2)
+  write(*,*) 'size(B,1)               : ', size(B,1)
+  write(*,*) 'size(mu,1)              : ', size(mu1,1)
+  write(*,*) 'maxval(mu1), maxval(mu2): ', maxval(mu1),maxval(mu2) 
   
-  ! write out
-!  open(IOUT_SC,file=trim(OUTPUT_FILES)//'STF.dat',status='replace') 
-!  do i=1,NT
-!     write(IOUT_SC,*) STF(:,i)
-!  enddo
-!  close(IOUT_SC)
-
-  ! bin file
-  INQUIRE( IOLENGTH=iol ) STF(:,1)
-  write(*,*) 'iol: ', iol
-  open(IOUT_SC,file=trim(OUTPUT_FILES)//'STF.dat',status='replace',access='direct',recl=iol) 
+  ! to verify what value to use when aysmmetrical fault
+  ! take ave. for now
+  mu = (mu1+ mu2)* 0.5_CUSTOM_REAL
+ 
+  ! STF = Moment rate (time) = sum(mu*B*Vslip)
+  write(iproc,'(i5.5)')  myrank
+  open(IOUT_SC,file=trim(OUTPUT_FILES)//'proc_'//trim(iproc)//'_STF.dat',status='unknown') 
   do i=1,NT
-     write(IOUT_SC,rec=i) STF(:,i)
+     write(IOUT_SC,*) sum( mu(:)* B(:)* STF(:,i) )
   enddo
   close(IOUT_SC)
-
 
   end subroutine write_STF_GPU
 !------------------------------------------------------------------------

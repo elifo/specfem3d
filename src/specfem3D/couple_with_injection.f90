@@ -332,7 +332,7 @@
           print *,'       or'
           print *,'       increase FK window length larger than ',(NSTEP/2 - NP_RESAMP) * NP_RESAMP * deltat
           print *,'       to have a NF for storing  larger than ',(NSTEP/2 - NP_RESAMP)
-          stop 'Invalid FK setting'
+          !stop 'Invalid FK setting'
         endif
 
         !! arrays for storing FK solution --------------------------------------------

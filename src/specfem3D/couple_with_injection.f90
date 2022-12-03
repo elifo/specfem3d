@@ -278,6 +278,7 @@
       call bcast_all_singlecr(phi_FK)
       call bcast_all_singlecr(theta_FK)
       call bcast_all_singlecr(ff0)
+      call bcast_all_singlecr(stf_amp)
       call bcast_all_singlecr(xx0)
       call bcast_all_singlecr(yy0)
       call bcast_all_singlecr(zz0)
@@ -371,7 +372,7 @@
                   abs_boundary_ispec, num_abs_boundary_faces, ispec_is_elastic, &
                   kpsv, nlayer, nstep, npt, nbdglb, &
                   ray_p, phi_FK, xx0, yy0, zz0, Tg, &
-                  tt0, alpha_FK, beta_FK, mu_FK, h_FK, deltat, &
+                  tt0, alpha_FK, beta_FK, mu_FK, h_FK, deltat, stf_amp, &
                   NF_FOR_STORING, NPOW_FOR_FFT, NP_RESAMP, DF_FK)
 
       endif
@@ -436,7 +437,7 @@
                   abs_boundary_ispec, num_abs_boundary_faces, ispec_is_elastic, &
                   kpsv, nlayer, nstep, npt, nbdglb, &
                   ray_p, phi, xx0, yy0, zz0, Tg, &
-                  tt0, alpha_FK, beta_FK, mu_FK, h_FK, deltat, &
+                  tt0, alpha_FK, beta_FK, mu_FK, h_FK, deltat,stf_amp, &
                   NF_FOR_STORING, NPOW_FOR_FFT, NP_RESAMP, DF_FK)
 
   use constants
@@ -454,7 +455,7 @@
   integer, dimension(npt) :: nbdglb
 
   ! source
-  real(kind=CUSTOM_REAL) :: ray_p,phi,xx0,yy0,zz0,tt0
+  real(kind=CUSTOM_REAL) :: ray_p,phi,xx0,yy0,zz0,tt0,stf_amp
   real(kind=CUSTOM_REAL) :: DF_FK
 
   ! model
@@ -523,7 +524,7 @@
 
   call FK(alpha_FK, beta_FK, mu_FK, h_FK, nlayer, &
           Tg, ray_p, phi, xx0, yy0, zz0, &
-          tt0, deltat, nstep, npt, &
+          tt0, deltat, stf_amp, nstep, npt, &
           kpsv, NF_FOR_STORING, NPOW_FOR_FFT,  NP_RESAMP, DF_FK)
 
   deallocate(xx, yy, zz, xi1, xim, bdlambdamu, nmx, nmy, nmz)
@@ -536,7 +537,7 @@
 
   subroutine FK(al, be, mu, h, nlayer, &
                 Tg, ray_p, phi, x0, y0, z0, &
-                t0, dt, npts, np, &
+                t0, dt, stf_amp, npts, np, &
                 kpsv, NF_FOR_STORING, NPOW_FOR_FFT, NP_RESAMP, DF_FK)
 
   use constants, only: myrank,CUSTOM_REAL,IMAIN,PI
@@ -558,7 +559,7 @@
   real(kind=CUSTOM_REAL),  dimension(nlayer),  intent(in)   :: al(nlayer),be(nlayer),mu(nlayer),H(nlayer)
 
   ! source
-  real(kind=CUSTOM_REAL),                      intent(in)    :: dt, ray_p, phi, x0, y0, z0, Tg, t0, DF_FK
+  real(kind=CUSTOM_REAL),                      intent(in)    :: dt,ray_p,phi,x0,y0,z0,Tg,t0,DF_FK,stf_amp
 
   real(kind=CUSTOM_REAL),     dimension(:),   allocatable    :: fvec, dtmp
   complex(kind=CUSTOM_CMPLX), dimension(:,:), allocatable    :: coeff, field_f
@@ -864,6 +865,7 @@
         do ii = 1, nf2
            om = 2.0 * PI * fvec(ii)
            stf_coeff = exp(-(om*tg/2)**2) * exp(cmplx(0,-1)*om*tdelay)
+           stf_coeff = stf_coeff* stf_amp            
 
            ! z is the height of position with respect to the lowest layer interface.
            call compute_N_rayleigh(al,be,mu,H,nlayer,om,ray_p,zz(ip),N_mat)
@@ -1469,6 +1471,7 @@
   kpsv = 1  ! 1 == P-wave / 2 == SV-wave
   position_of_wavefront_not_read = .true.
   stag = .false.
+  stf_amp = 1.0
 
   !! READING input file
   open(85,file=trim(FKMODEL_FILE))
@@ -1549,6 +1552,9 @@
 
      case('TIME_WINDOW')
         read(line,*)  keyword_tmp, tmax_fk
+
+     case('STF_AMP')
+        read(line,*)  keyword_tmp, stf_amp
 
      end select
   !!------------------------------------------------------------------------------------------------------
@@ -1631,6 +1637,7 @@
   write(IMAIN,*) " Z reference for FK routine : ", Z_ref_for_FK
   write(IMAIN,*) " Window for FK computing    : ", tmax_fk
   write(IMAIN,*) " frequency max              : ", ff0
+  write(IMAIN,*) " STF coefficient            : ", stf_amp
   write(IMAIN,*) " type of incoming wave (1=p), (2=sv) :",kpsv
   write(IMAIN,*)
   write(IMAIN,*)

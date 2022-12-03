@@ -723,7 +723,7 @@ module specfem_par_coupling
   real(kind=CUSTOM_REAL) :: Z_REF_for_FK
 
   ! source
-  real(kind=CUSTOM_REAL) :: xx0,yy0,zz0,ff0,tt0,tmax_fk
+  real(kind=CUSTOM_REAL) :: xx0,yy0,zz0,ff0,tt0,tmax_fk,stf_amp
   real(kind=CUSTOM_REAL) :: phi_FK,theta_FK
 
   ! model

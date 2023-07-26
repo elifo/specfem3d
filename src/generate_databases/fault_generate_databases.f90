@@ -521,13 +521,13 @@ contains
 
   subroutine save_fault_xyzcoord_ibulk(fdb)
 
-  use create_regions_mesh_ext_par, only: xstore_unique,ystore_unique,zstore_unique,mustore
+  use create_regions_mesh_ext_par, only: xstore_unique,ystore_unique,zstore_unique
 
   implicit none
   type(fault_db_type), intent(inout) :: fdb
 
   ! local parameters
-  integer :: K1, K2, i, ier, e, ie, je, ke, k
+  integer :: K1, K2, i, ier
 
   allocate( fdb%xcoordbulk1(fdb%nglob) ,stat=ier)
   if (ier /= 0) call exit_MPI_without_rank('error allocating array 883')
@@ -560,7 +560,6 @@ contains
       fdb%zcoordbulk2(i) = zstore_unique(K2)
   enddo
 
-  enddo
 
   end subroutine save_fault_xyzcoord_ibulk
 

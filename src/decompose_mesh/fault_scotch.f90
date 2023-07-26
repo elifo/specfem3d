@@ -368,7 +368,7 @@ CONTAINS
 
   if (PARALLEL_FAULT) then
     ! fault can be parallelized
-    call fault_repartition_parallel(nelmnts,part, nodes_coords, nnodes, nproc)
+    call fault_repartition_parallel(nelmnts,part,nodes_coords,nnodes,nproc,elmnts,nsize,esize)
   else
     ! move all fault elements to the same partition (proc=0)
     call fault_repartition_not_parallel(nelmnts, nnodes, elmnts, nsize, nproc, part, esize)
@@ -476,15 +476,19 @@ CONTAINS
 
 ! ---------------------------------------------------------------------------------------------------
 
-  subroutine fault_repartition_parallel(nelmnts, part, nodes_coords, nnodes, nproc)
-
+  subroutine fault_repartition_parallel(nelmnts,part,nodes_coords,nnodes,nproc,elmnts,nsize,esize)
   implicit none
   integer, intent(in) :: nelmnts
   integer, dimension(0:nelmnts-1), intent(inout) :: part
-  integer, intent(in) :: nnodes,nproc
+  integer, intent(in) :: nnodes,nproc,nsize,esize
   double precision, dimension(NDIM,nnodes), intent(in) :: nodes_coords
+  integer, dimension(0:esize*nelmnts-1), intent(in) :: elmnts
 
   integer  :: i,iflt,e,e1,e2,proc1,proc2,counter,num_fault_elem
+  integer, dimension(0:nnodes-1) :: nnodes_elmnts
+  integer, dimension(0:nsize*nnodes-1) :: nodes_elmnts
+  integer :: iglob,k,k1,k2, id_elem, jj, faultelem
+
 
   ! user output
   print *,'fault repartitioning: (parallel version)'
@@ -522,7 +526,74 @@ CONTAINS
       print *,'  repartition loop',i,' changed ',counter,' coupled fault elements out of ',num_fault_elem
     enddo
     print *
-  endif
+
+    ! Elif: Additional modification for unstructured fault meshes below.
+    ! Assign non-fault elements that have fault node 
+    ! to the same partition of the fault elements.
+    ! This condition solves the MPI problem in Intel19 MPI, in HPC (Caltech).
+    ! It may not be necessary for some other machines, such as Thera (Geoazur).
+    nnodes_elmnts(:) = 0
+    nodes_elmnts(:)  = 0
+    do i = 0, esize*nelmnts-1
+      nodes_elmnts(elmnts(i)*nsize + nnodes_elmnts(elmnts(i))) = i/esize
+      nnodes_elmnts(elmnts(i)) = nnodes_elmnts(elmnts(i)) + 1
+    enddo
+
+   ! Elif: if structured mesh, a node is included in 4 elements (except for edges), 
+   ! but unstructured meshes of tripling layer have nodes at element-size transition that
+   ! are included in 8 elements, 2 of which do not have any face on fault surface.
+   ! Some machines are OK with this, but some give false result because of those nodes.
+    do iflt = 1,size(faults)
+      do e = 1,faults(iflt)%nspec
+         do k=1,4
+           ! SIDE 1
+           iglob=faults(iflt)%inodes1(k,e)
+           k1=(iglob-1)*nsize
+           k2=k1+ nnodes_elmnts(iglob-1)-1
+           ! Check below which nodes within 8 elements for each fault side. 
+           if ( k2-k1 == 7) then
+             faultelem=0
+             ! find the partition of "fault element" 
+             proc1 = part( faults(iflt)%ispec1(e)-1 )
+             do jj=k1,k2
+                 id_elem = nodes_elmnts(jj)+1
+                 faultelem = faultelem+ count(faults(iflt)%ispec1 == id_elem)
+             enddo
+              !verifying this is indeed a non-fault element having a fault node
+              !and not at fault edge
+              if (faultelem == 6) then
+                 ! assign all elements to the partition of the fault element
+                 part( nodes_elmnts(k1:k2) ) = proc1
+                 !print*, 'ELIF: refined layer found!'
+                 !print*, 'ELIF: all 8 elements put in part #', proc1
+             endif
+           endif
+
+           ! SIDE 2
+           iglob=faults(iflt)%inodes2(k,e)
+           k1=(iglob-1)*nsize
+           k2=k1+ nnodes_elmnts(iglob-1)-1
+           if ( k2-k1 == 7) then
+             faultelem=0
+             proc2 = part( faults(iflt)%ispec2(e)-1 )
+             do jj=k1,k2
+                 ! check which element is not fault element
+                 id_elem = nodes_elmnts(jj)+1
+                 print*, jj, id_elem, count(faults(iflt)%ispec2 == id_elem)
+                 faultelem = faultelem+ count(faults(iflt)%ispec2 == id_elem)
+             enddo
+             if (faultelem == 6) then
+                 part( nodes_elmnts(k1:k2) ) = proc2
+!                 print*, 'ELIF: refined layer found!'
+!                 print*, 'ELIF: all 8 elements put in part #', proc2
+             endif
+           endif
+        enddo
+      enddo
+    enddo
+ 
+  endif !nspec
+
 
   end subroutine fault_repartition_parallel
 

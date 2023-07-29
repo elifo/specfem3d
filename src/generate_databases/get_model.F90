@@ -44,7 +44,7 @@
 
   ! injection technique
   use constants, only: INJECTION_TECHNIQUE_IS_FK,INJECTION_TECHNIQUE_IS_DSM,INJECTION_TECHNIQUE_IS_AXISEM,&
-                       IS_RIDGECREST_VELOCMODEL,IS_SCEC_STRATIFIEDMODEL_2021
+                       IS_RIDGECREST_VELOCMODEL,IS_SCEC_STRATIFIEDMODEL_2021,IS_GRONINGEN_VELOCMODEL
   use shared_parameters, only: COUPLE_WITH_INJECTION_TECHNIQUE,MESH_A_CHUNK_OF_THE_EARTH,INJECTION_TECHNIQUE_TYPE
 
 
@@ -79,7 +79,7 @@
   integer,parameter :: IIN_STR = 122 ! could also use e.g. standard IIN from constants.h
   character(len=570) :: filename
   integer :: nglob_check
-  double precision :: Vs_user(nglob,1), Vp_user(nglob,1)
+  double precision :: Vs_user(nglob,1), Vp_user(nglob,1), rho_user(nglob,1)
 
 
   ! initializes element domain flags
@@ -165,6 +165,23 @@
     read(61) Vp_user
     close(61)
     endif
+
+    ! Elif -- Groningen model (2023, July)
+    if ( IS_GRONINGEN_VELOCMODEL ) then
+    write(*,*) 'USING GRONINGEN VELOCITY MODEL WITH USER INPUT!'
+    write(filename,'(a,i6.6,a)') &
+     './groningen_velocprofile/proc',myrank,'_user_velocity_profile3.bin'
+    write(*,*) 'ELIF: filename: ', filename
+    open(unit=61,file=trim(filename),form='unformatted')
+    read(61) nglob_check
+    write(*,*) 'ELIF: nglob_check, nglob: ', nglob_check, nglob
+    read(61) Vs_user
+    read(61) Vp_user
+    read(61) rho_user
+    close(61)
+    endif
+
+
 
   ! Elif: just a checkpoint before getting into loop
   if (IS_SCEC_STRATIFIEDMODEL_2021) &
@@ -281,6 +298,16 @@
                         0.0671*(vp/1000.0)**3.0- 0.0043*(vp/1000.0)**4.0+ &
                         0.000106* (vp/1000.0)**5.0
               rho = rho*1000.0
+              if (iglob == 1 .or. iglob==nglob) &
+              write(*,*) 'iglob, nglob, vs, vp, rho', iglob, nglob, vs, vp, rho
+          endif
+
+          ! Elif: overwrite Vs, Vp, and rho data
+          if ( IS_GRONINGEN_VELOCMODEL ) then
+              vs = real(Vs_user(iglob, 1))
+              vp = real(Vp_user(iglob, 1))
+              rho = real(rho_user(iglob, 1))
+              ! print info for calm mind
               if (iglob == 1 .or. iglob==nglob) &
               write(*,*) 'iglob, nglob, vs, vp, rho', iglob, nglob, vs, vp, rho
           endif

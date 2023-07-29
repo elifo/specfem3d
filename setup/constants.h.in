@@ -529,7 +529,8 @@
 ! after the SCEC dynamic rupture group benchmark 2021
 
   logical, parameter :: IS_SCEC_STRATIFIEDMODEL_2021 = .false.
-  logical, parameter :: IS_RIDGECREST_VELOCMODEL = .true.
+  logical, parameter :: IS_RIDGECREST_VELOCMODEL = .false.
+  logical, parameter :: IS_GRONINGEN_VELOCMODEL = .true.
 
 
 

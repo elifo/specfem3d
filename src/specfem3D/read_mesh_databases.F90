@@ -268,7 +268,11 @@
     allocate(accel(NDIM,NGLOB_AB),stat=ier)
     if (ier /= 0) call exit_MPI_without_rank('error allocating array 1429')
     if (ier /= 0) stop 'Error allocating array accel'
+    allocate(force_losalamos(NDIM,NGLOB_AB),stat=ier)
+    if (ier /= 0) call exit_MPI_without_rank('error allocating array 1430')
+    if (ier /= 0) stop 'Error allocating array force_losalamos'
     displ(:,:) = 0.0_CUSTOM_REAL; veloc(:,:) = 0.0_CUSTOM_REAL; accel(:,:) = 0.0_CUSTOM_REAL
+    force_losalamos(:,:) = 0.0_CUSTOM_REAL
 
     if (SIMULATION_TYPE /= 1) then
       allocate(accel_adj_coupling(NDIM,NGLOB_AB),stat=ier)

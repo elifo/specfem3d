@@ -45,7 +45,7 @@
   ! wavefields
   use specfem_par_acoustic, only: ispec_is_acoustic,potential_acoustic,potential_dot_acoustic,potential_dot_dot_acoustic, &
     b_potential_acoustic,b_potential_dot_acoustic,b_potential_dot_dot_acoustic
-  use specfem_par_elastic, only: ispec_is_elastic,displ,veloc,accel, &
+  use specfem_par_elastic, only: ispec_is_elastic,displ,veloc,accel,force_losalamos, &
     b_displ,b_veloc,b_accel
   use specfem_par_poroelastic, only: ispec_is_poroelastic,displs_poroelastic,velocs_poroelastic,accels_poroelastic, &
     b_displs_poroelastic,b_velocs_poroelastic,b_accels_poroelastic
@@ -118,10 +118,16 @@
       ! elastic wave field
       if (ispec_is_elastic(ispec)) then
         ! interpolates displ/veloc/accel at receiver locations
-        call compute_interpolated_dva_viscoelast(displ,veloc,accel,NGLOB_AB, &
+        !call compute_interpolated_dva_viscoelast(displ,veloc,accel,NGLOB_AB, &
+        !                                         ispec,NSPEC_AB,ibool, &
+        !                                         hxir,hetar,hgammar, &
+        !                                         dxd,dyd,dzd,vxd,vyd,vzd,axd,ayd,azd,pd)
+        ! Elif: write out forces instead of accel
+        call compute_interpolated_dva_viscoelast(displ,veloc,force_losalamos,NGLOB_AB, &
                                                  ispec,NSPEC_AB,ibool, &
                                                  hxir,hetar,hgammar, &
                                                  dxd,dyd,dzd,vxd,vyd,vzd,axd,ayd,azd,pd)
+
       endif ! elastic
 
       ! acoustic wave field

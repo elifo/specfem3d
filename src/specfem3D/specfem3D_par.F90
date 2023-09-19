@@ -396,7 +396,7 @@ module specfem_par_elastic
   real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: epsilon_trace_over_3
 
   ! displacement, velocity, acceleration
-  real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: displ,veloc,accel
+  real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: displ,veloc,accel,force_losalamos
   real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: accel_adj_coupling
 
   ! mass matrix

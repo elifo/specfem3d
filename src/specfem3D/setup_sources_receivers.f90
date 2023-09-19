@@ -43,15 +43,19 @@
 
   ! reads in stations file and locates receivers
   call setup_receivers()
+  write(*,*) 'ELIF:: DEBUG:: done: setup_receivers'
 
   ! pre-compute source arrays
   call setup_sources_precompute_arrays()
+  write(*,*) 'ELIF:: DEBUG:: done: setup_sources_precompute_arrays'
 
   ! pre-compute receiver interpolation factors
   call setup_receivers_precompute_intp()
+  write(*,*) 'ELIF:: DEBUG:: done: setup_receivers_precompute_intp'
 
   ! write source and receiver VTK files for Paraview
-  call setup_sources_receivers_VTKfile()
+  write(*,*) 'ELIF:: DEBUG:: WRITE_SAVE_SOURCES_RECEIVERS_VTK', WRITE_SAVE_SOURCES_RECEIVERS_VTK
+  !if (WRITE_SAVE_SOURCES_RECEIVERS_VTK) & call setup_sources_receivers_VTKfile()
 
   ! user output
   if (myrank == 0) then

@@ -360,6 +360,9 @@
   if (.not. GPU_MODE) then
     ! on CPU
     do iglob = 1,NGLOB_AB
+      ! Elif: assign before overwriting to write out for Los Alamos
+      force_losalamos(:,iglob) = accel(:,iglob)
+
       accel(1,iglob) = accel(1,iglob)*rmassx(iglob)
       accel(2,iglob) = accel(2,iglob)*rmassy(iglob)
       accel(3,iglob) = accel(3,iglob)*rmassz(iglob)

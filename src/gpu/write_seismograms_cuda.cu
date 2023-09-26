@@ -1,8 +1,8 @@
 /*
  !=====================================================================
  !
- !                         S p e c f e m 3 D
- !                         -----------------
+ !               S p e c f e m 3 D  V e r s i o n  3 . 0
+ !               ---------------------------------------
  !
  !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
  !                              CNRS, France
@@ -46,11 +46,6 @@ void FC_FUNC_(compute_seismograms_cuda,
 
 // compute_seismograms
   TRACE("compute_seismograms_cuda");
-
-  // flag to indicate that traces for kernel runs are taken from adjoint wavefields instead of backward/reconstructed wavefields;
-  // useful for debugging.
-  // default (0) is to output backward/reconstructed wavefield
-  const int OUTPUT_ADJOINT_WAVEFIELD = 0;
 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); // get Mesh from fortran integer wrapper
 
@@ -102,15 +97,9 @@ void FC_FUNC_(compute_seismograms_cuda,
         potential = mp->d_potential_acoustic;
       }else{
         // kernel simulations
-        if (OUTPUT_ADJOINT_WAVEFIELD){
-          // adjoint wavefield
-          displ = mp->d_displ;
-          potential = mp->d_potential_acoustic;
-        }else{
-          // reconstructed forward wavefield stored in b_displ, b_veloc, b_accel
-          displ = mp->d_b_displ;
-          potential = mp->d_b_potential_acoustic;
-        }
+        // reconstructed forward wavefield stored in b_displ, b_veloc, b_accel
+        displ = mp->d_b_displ;
+        potential = mp->d_b_potential_acoustic;
       }
       d_seismo = mp->d_seismograms_d;
 
@@ -121,15 +110,8 @@ void FC_FUNC_(compute_seismograms_cuda,
         potential = mp->d_potential_dot_acoustic;
       }else{
         // kernel simulations
-        if (OUTPUT_ADJOINT_WAVEFIELD){
-          // adjoint wavefield
-          displ = mp->d_veloc;
-          potential = mp->d_potential_dot_acoustic;
-        }else{
-          // backward wavefield
-          displ = mp->d_b_veloc;
-          potential = mp->d_b_potential_dot_acoustic;
-        }
+        displ = mp->d_b_veloc;
+        potential = mp->d_b_potential_dot_acoustic;
       }
       d_seismo = mp->d_seismograms_v;
 
@@ -140,20 +122,13 @@ void FC_FUNC_(compute_seismograms_cuda,
         potential = mp->d_potential_dot_dot_acoustic;
       }else{
         // kernel simulations
-        if (OUTPUT_ADJOINT_WAVEFIELD){
-          // adjoint wavefield
-          displ = mp->d_accel;
-          potential = mp->d_potential_dot_dot_acoustic;
-        }else{
-          // backward wavefield
-          displ = mp->d_b_accel;
-          potential = mp->d_b_potential_dot_dot_acoustic;
-        }
+        displ = mp->d_b_accel;
+        potential = mp->d_b_potential_dot_dot_acoustic;
       }
       d_seismo = mp->d_seismograms_a;
 
     }else if (seismotype == 4){
-      // pressure
+      // pression
       if (mp->simulation_type == 1 || mp->simulation_type == 2){
         displ = mp->d_displ;
         if (*USE_TRICK_FOR_BETTER_PRESSURE){
@@ -163,22 +138,11 @@ void FC_FUNC_(compute_seismograms_cuda,
         }
       }else{
         // kernel simulations
-        if (OUTPUT_ADJOINT_WAVEFIELD){
-          // adjoint wavefield
-          displ = mp->d_displ;
-          if (*USE_TRICK_FOR_BETTER_PRESSURE){
-            potential = mp->d_b_potential_acoustic;
-          }else{
-            potential = mp->d_b_potential_dot_dot_acoustic;
-          }
+        displ = mp->d_b_displ;
+        if (*USE_TRICK_FOR_BETTER_PRESSURE){
+          potential = mp->d_b_potential_acoustic;
         }else{
-          // backward wavefled
-          displ = mp->d_b_displ;
-          if (*USE_TRICK_FOR_BETTER_PRESSURE){
-            potential = mp->d_b_potential_acoustic;
-          }else{
-            potential = mp->d_b_potential_dot_dot_acoustic;
-          }
+          potential = mp->d_b_potential_dot_dot_acoustic;
         }
       }
       d_seismo_p = mp->d_seismograms_p;
@@ -209,6 +173,9 @@ void FC_FUNC_(compute_seismograms_cuda,
                                                                                  mp->d_gammax,mp->d_gammay,mp->d_gammaz,
                                                                                  mp->d_irregular_element_number,
                                                                                  mp->xix_regular,
+                                                                                 mp->d_rmassx,
+                                                                                 mp->d_rmassy,
+                                                                                 mp->d_rmassz,
                                                                                  seismo_current);
       }
 #endif
@@ -232,6 +199,9 @@ void FC_FUNC_(compute_seismograms_cuda,
                                                                  mp->d_gammax,mp->d_gammay,mp->d_gammaz,
                                                                  mp->d_irregular_element_number,
                                                                  mp->xix_regular,
+                                                                 mp->d_rmassx,
+                                                                 mp->d_rmassy,
+                                                                 mp->d_rmassz,
                                                                  seismo_current);
       }
 #endif

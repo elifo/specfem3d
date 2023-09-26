@@ -1,8 +1,8 @@
 /*
 !=====================================================================
 !
-!                          S p e c f e m 3 D
-!                          -----------------
+!               S p e c f e m 3 D  V e r s i o n  3 . 0
+!               ---------------------------------------
 !
 !    Main historical authors: Dimitri Komatitsch and Jeroen Tromp
 !                             CNRS, France
@@ -48,6 +48,9 @@ __global__ void compute_elastic_seismogram_kernel(int nrec_local,
                                                   realw* d_gammax,realw* d_gammay,realw* d_gammaz,
                                                   int* d_irregular_element_number,
                                                   realw xix_regular,
+                                                  realw_const_p rmassx,
+                                                  realw_const_p rmassy,
+                                                  realw_const_p rmassz,
                                                   int it){
 
   int irec_local = blockIdx.x + blockIdx.y*gridDim.x;
@@ -83,9 +86,14 @@ __global__ void compute_elastic_seismogram_kernel(int nrec_local,
         realw hlagrange = hxir * hetar * hgammar;
         int iglob = d_ibool[INDEX4_PADDED(NGLLX,NGLLX,NGLLX,I,J,K,ispec)] - 1;
 
-        sh_dxd[tx] = hlagrange * displ[NDIM*iglob];
-        sh_dyd[tx] = hlagrange * displ[NDIM*iglob+1];
-        sh_dzd[tx] = hlagrange * displ[NDIM*iglob+2];
+        //sh_dxd[tx] = hlagrange * displ[NDIM*iglob];
+        // sh_dyd[tx] = hlagrange * displ[NDIM*iglob+1];
+        // sh_dzd[tx] = hlagrange * displ[NDIM*iglob+2];
+        // Elif: write forces for Los Alamos, use only save_accel!!!
+        sh_dxd[tx] = hlagrange * displ[NDIM*iglob]/ rmassx[iglob];
+        sh_dyd[tx] = hlagrange * displ[NDIM*iglob+1]/rmassy[iglob];
+        sh_dzd[tx] = hlagrange * displ[NDIM*iglob+2]/ rmassz[iglob];
+
 
         //debug
         //if (tx == 0) printf("thread %d %d %d - %f %f %f\n",ispec,iglob,irec_local,hlagrange,displ[0 + 2*iglob],displ[1 + 2*iglob]);

@@ -1,7 +1,7 @@
 !=====================================================================
 !
-!               S p e c f e m 3 D  V e r s i o n  3 . 0
-!               ---------------------------------------
+!                          S p e c f e m 3 D
+!                          -----------------
 !
 !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
 !                              CNRS, France
@@ -32,7 +32,7 @@
                                   UTM_X_MIN,UTM_X_MAX,UTM_Y_MIN,UTM_Y_MAX,Z_DEPTH_BLOCK,NEX_XI,NEX_ETA)
 
   use constants
-  use constants_meshfem3D, only: NGLLX_M,NGLLY_M,NGLLZ_M,IFLAG_ONE_LAYER_TOPOGRAPHY
+  use constants_meshfem, only: NGLLX_M,NGLLY_M,NGLLZ_M,IFLAG_ONE_LAYER_TOPOGRAPHY
 
   implicit none
 

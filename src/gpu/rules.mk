@@ -1,13 +1,13 @@
 #=====================================================================
 #
-#               S p e c f e m 3 D  V e r s i o n  3 . 0
-#               ---------------------------------------
+#                         S p e c f e m 3 D
+#                         -----------------
 #
 #     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
-#                        Princeton University, USA
-#                and CNRS / University of Marseille, France
+#                              CNRS, France
+#                       and Princeton University, USA
 #                 (there are currently many more authors!)
-# (c) Princeton University and CNRS / University of Marseille, July 2012
+#                           (c) October 2017
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -49,6 +49,7 @@ gpu_specfem3D_OBJECTS = \
 	$O/compute_kernels_cuda.o \
 	$O/compute_stacey_acoustic_cuda.o \
 	$O/compute_stacey_viscoelastic_cuda.o \
+	$O/compute_strain_cuda.o \
 	$O/fault_solver_dynamics.o \
 	$O/helper_functions.o \
 	$O/initialize_gpu.o \

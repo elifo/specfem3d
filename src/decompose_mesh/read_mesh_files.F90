@@ -1,7 +1,7 @@
 !=====================================================================
 !
-!               S p e c f e m 3 D  V e r s i o n  3 . 0
-!               ---------------------------------------
+!                          S p e c f e m 3 D
+!                          -----------------
 !
 !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
 !                              CNRS, France
@@ -884,9 +884,12 @@
   close(IIN_DB)
   if (nspec2D_moho > 0) print *, '  nspec2D_moho = ', nspec2D_moho
 
+  ! fault surfaces
   call read_fault_files(localpath_name)
   if (ANY_FAULT) then
+    ! saving original node coordinates, where split nodes are still open
     call save_nodes_coords(nodes_coords,nnodes)
+    ! closing split node gaps in nodes_coords to have a conforming mesh
     call close_faults(nodes_coords,nnodes)
   endif
 

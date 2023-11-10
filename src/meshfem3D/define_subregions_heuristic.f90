@@ -1,7 +1,7 @@
 !=====================================================================
 !
-!               S p e c f e m 3 D  V e r s i o n  3 . 0
-!               ---------------------------------------
+!                          S p e c f e m 3 D
+!                          -----------------
 !
 !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
 !                              CNRS, France
@@ -37,7 +37,7 @@
 !! to 120 degrees in doubling regions
 !
 !  use constants
-!  use constants_meshfem3D, only: ITYPE_UNUSUAL_1,ITYPE_UNUSUAL_1p,ITYPE_UNUSUAL_4,ITYPE_UNUSUAL_4p
+!  use constants_meshfem, only: ITYPE_UNUSUAL_1,ITYPE_UNUSUAL_1p,ITYPE_UNUSUAL_4,ITYPE_UNUSUAL_4p
 !
 !  implicit none
 !

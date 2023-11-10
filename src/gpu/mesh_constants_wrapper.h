@@ -1,14 +1,14 @@
 /*
  !=====================================================================
  !
- !               S p e c f e m 3 D  V e r s i o n  3 . 0
- !               ---------------------------------------
+ !                         S p e c f e m 3 D
+ !                         -----------------
  !
  !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
- !                        Princeton University, USA
- !                and CNRS / University of Marseille, France
+ !                              CNRS, France
+ !                       and Princeton University, USA
  !                 (there are currently many more authors!)
- ! (c) Princeton University and CNRS / University of Marseille, July 2012
+ !                           (c) October 2017
  !
  ! This program is free software; you can redistribute it and/or modify
  ! it under the terms of the GNU General Public License as published by
@@ -233,7 +233,7 @@ static inline void gpuMemcpyAsync_tohost_realw(realw* h_array,realw* d_array,con
 /* ----------------------------------------------------------------------------------------------- */
 
 
-static inline void gpuMemset_int(int* d_array,int value,const size_t size){
+static inline void gpuMemset_int(int* d_array, const size_t size, int value){
   // sets value for array on device
 #ifdef USE_CUDA
   if (run_cuda){
@@ -247,16 +247,16 @@ static inline void gpuMemset_int(int* d_array,int value,const size_t size){
 #endif
 }
 
-static inline void gpuMemset_realw(realw* d_array,int value,const size_t size){
+static inline void gpuMemset_realw(realw* d_array, const size_t size, int value){
   // sets value for array on device
 #ifdef USE_CUDA
   if (run_cuda){
-    print_CUDA_error_if_any(cudaMemset(d_array,value,size*sizeof(realw)),2302);
+    print_CUDA_error_if_any(cudaMemset(d_array, value, size*sizeof(realw)),2302);
   }
 #endif
 #ifdef USE_HIP
   if (run_hip){
-    print_HIP_error_if_any(hipMemset(d_array,value,size*sizeof(realw)),2302);
+    print_HIP_error_if_any(hipMemset(d_array, value, size*sizeof(realw)),2302);
   }
 #endif
 }

@@ -1,8 +1,8 @@
 /*
  !=====================================================================
  !
- !               S p e c f e m 3 D  V e r s i o n  3 . 0
- !               ---------------------------------------
+ !                         S p e c f e m 3 D
+ !                         -----------------
  !
  !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
  !                              CNRS, France
@@ -36,9 +36,9 @@
 /* ----------------------------------------------------------------------------------------------- */
 
 // copies integer array from CPU host to GPU device
-void gpuCopy_todevice_int(void** d_array_addr_ptr,int* h_array,int size){
+void gpuCreateCopy_todevice_int(void** d_array_addr_ptr,int* h_array,int size){
 
-  TRACE("gpuCopy_todevice_int");
+  TRACE("gpuCreateCopy_todevice_int");
 
 #ifdef USE_CUDA
   if (run_cuda) {
@@ -70,9 +70,9 @@ void gpuCopy_todevice_int(void** d_array_addr_ptr,int* h_array,int size){
 /* ----------------------------------------------------------------------------------------------- */
 
 // copies integer array from CPU host to GPU device
-void gpuCopy_todevice_realw(void** d_array_addr_ptr,realw* h_array,int size){
+void gpuCreateCopy_todevice_realw(void** d_array_addr_ptr,realw* h_array,int size){
 
-  TRACE("gpuCopy_todevice_realw");
+  TRACE("gpuCreateCopy_todevice_realw");
 
 #ifdef USE_CUDA
   if (run_cuda) {

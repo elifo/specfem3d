@@ -1,7 +1,7 @@
 !=====================================================================
 !
-!               S p e c f e m 3 D  V e r s i o n  3 . 0
-!               ---------------------------------------
+!                          S p e c f e m 3 D
+!                          -----------------
 !
 !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
 !                              CNRS, France
@@ -27,8 +27,7 @@
 
   subroutine read_parameter_file(BROADCAST_AFTER_READ)
 
-  use constants, only: &
-    myrank, &
+  use constants, only: myrank, &
     INJECTION_TECHNIQUE_IS_AXISEM,INJECTION_TECHNIQUE_IS_DSM,INJECTION_TECHNIQUE_IS_FK
 
   use shared_parameters
@@ -489,11 +488,20 @@
       write(*,*)
     endif
 
-    call read_value_integer(subsamp_seismos, 'subsamp_seismos', ier)
+    !deprecated: call read_value_integer(subsamp_seismos, 'subsamp_seismos', ier)
+    call read_value_integer(NTSTEP_BETWEEN_OUTPUT_SAMPLE, 'NTSTEP_BETWEEN_OUTPUT_SAMPLE', ier)
     if (ier /= 0) then
-      some_parameters_missing_from_Par_file = .true.
-      write(*,'(a)') 'subsamp_seismos                 = 1'
-      write(*,*)
+      ! old version
+      call read_value_integer(NTSTEP_BETWEEN_OUTPUT_SAMPLE, 'subsamp_seismos', ier)
+      if (ier == 0) then
+        ! deprecation warning
+        write(*,'(a)') 'Warning: Deprecated parameter subsamp_seismos found in Par_file.'
+        write(*,'(a)') '         Please use parameter NTSTEP_BETWEEN_OUTPUT_SAMPLE in future...'
+      else
+        some_parameters_missing_from_Par_file = .true.
+        write(*,'(a)') 'NTSTEP_BETWEEN_OUTPUT_SAMPLE    = 1'
+        write(*,*)
+      endif
     endif
 
     call read_value_logical(USE_BINARY_FOR_SEISMOGRAMS, 'USE_BINARY_FOR_SEISMOGRAMS', ier)
@@ -671,15 +679,21 @@
          INJECTION_TECHNIQUE_TYPE /= INJECTION_TECHNIQUE_IS_AXISEM .and. &
          INJECTION_TECHNIQUE_TYPE /= INJECTION_TECHNIQUE_IS_FK) stop 'Error incorrect value of INJECTION_TECHNIQUE_TYPE read'
 
-      if ( (INJECTION_TECHNIQUE_TYPE == INJECTION_TECHNIQUE_IS_DSM ) .and. &
-           (.not. MESH_A_CHUNK_OF_THE_EARTH) ) stop 'Error, coupling with DSM only works with a Earth chunk mesh'
+      if ( (INJECTION_TECHNIQUE_TYPE == INJECTION_TECHNIQUE_IS_DSM ) .and. (.not. MESH_A_CHUNK_OF_THE_EARTH) ) &
+        stop 'Error, coupling with DSM only works with a Earth chunk mesh'
 
       if (INJECTION_TECHNIQUE_TYPE == INJECTION_TECHNIQUE_IS_FK .and. MESH_A_CHUNK_OF_THE_EARTH) &
-           stop 'Error: coupling with F-K is for models with a flat surface (Earth flattening), &
+        stop 'Error: coupling with F-K is for models with a flat surface (Earth flattening), &
                        &thus turn MESH_A_CHUNK_OF_THE_EARTH off'
 
       if ((INJECTION_TECHNIQUE_TYPE /= INJECTION_TECHNIQUE_IS_AXISEM) .and. RECIPROCITY_AND_KH_INTEGRAL) &
-           stop 'Error: the use of RECIPROCITY_AND_KH_INTEGRAL is only available for coupling with AxiSEM for now'
+        stop 'Error: the use of RECIPROCITY_AND_KH_INTEGRAL is only available for coupling with AxiSEM for now'
+
+      if (STACEY_ABSORBING_CONDITIONS .eqv. .false.) &
+        stop 'Error: COUPLE_WITH_INJECTION_TECHNIQUE requires to set STACEY_ABSORBING_CONDITIONS to have an effect'
+
+      if (UNDO_ATTENUATION_AND_OR_PML .and. SIMULATION_TYPE == 3) &
+          stop 'Error: COUPLE_WITH_INJECTION_TECHNIQUE together with UNDO_ATT or PML simulations not implemented yet'
     endif
 
     !-------------------------------------------------------
@@ -709,16 +723,14 @@
     endif
 
     !> Read ADIOS related flags from the Par_file
-    !! \param ADIOS_ENABLED Main flag to decide if ADIOS is used. If setted to
-    !!                      false no other parameter is taken into account.
-    !! \param ADIOS_FOR_DATABASES Flag to indicate if the databases are written
-    !!                            and read with the help of ADIOS.
-    !! \param ADIOS_FOR_MESH flag to indicate if the mesh (generate database) is
-    !!                       written using ADIOS.
-    !! \param ADIOS_FOR_FORWARD_ARRAYS flag to indicate if the solver forward arrays
-    !!                                 are written using ADIOS.
-    !! \param ADIOS_FOR_KERNELS flag to indicate if the kernels are saved using
-    !!                          adios
+    !! \param ADIOS_ENABLED Main flag to decide if ADIOS is used.
+    !!                      If set to .false., no other parameter is taken into account.
+    !! \param ADIOS_FOR_DATABASES        - Flag to indicate if the databases are written and read with the help of ADIOS.
+    !! \param ADIOS_FOR_MESH             - Flag to indicate if the mesh (generate database) is written using ADIOS.
+    !! \param ADIOS_FOR_FORWARD_ARRAYS   - Flag to indicate if the solver forward arrays are written using ADIOS.
+    !! \param ADIOS_FOR_KERNELS          - Flag to indicate if the kernels are saved using adios
+    !! \param ADIOS_FOR_UNDO_ATTENUATION - Flag for saving undo_att snapshot wavefields using adios
+    !!
     !! \author MPBL
     call read_value_logical(ADIOS_ENABLED, 'ADIOS_ENABLED', ier)
     if (ier /= 0) then
@@ -755,6 +767,13 @@
       write(*,*)
     endif
 
+    call read_value_logical(ADIOS_FOR_UNDO_ATTENUATION, 'ADIOS_FOR_UNDO_ATTENUATION', ier)
+    if (ier /= 0) then
+      some_parameters_missing_from_Par_file = .true.
+      write(*,'(a)') 'ADIOS_FOR_UNDO_ATTENUATION      = .false.'
+      write(*,*)
+    endif
+
     ! closes parameter file
     call close_parameter_file()
 
@@ -784,7 +803,7 @@
       ADIOS_FOR_MESH = .false.
       ADIOS_FOR_FORWARD_ARRAYS = .false.
       ADIOS_FOR_KERNELS = .false.
-      ! ADIOS_FOR_UNDO_ATTENUATION = .false. ! not implemented yet
+      ADIOS_FOR_UNDO_ATTENUATION = .false.
     endif
 
     ! re-sets PML free surface flag
@@ -863,8 +882,8 @@
    stop 'Error: at least one of SAVE_SEISMOGRAMS_DISPLACEMENT SAVE_SEISMOGRAMS_VELOCITY SAVE_SEISMOGRAMS_ACCELERATION &
              &SAVE_SEISMOGRAMS_PRESSURE must be true'
 
-  if (subsamp_seismos < 1) &
-    stop 'Error: subsamp_seismos must be >= 1'
+  if (NTSTEP_BETWEEN_OUTPUT_SAMPLE < 1) &
+    stop 'Error: NTSTEP_BETWEEN_OUTPUT_SAMPLE must be >= 1'
 
   ! this could be implemented in the future if needed,
   ! see comments in the source code around the USE_TRICK_FOR_BETTER_PRESSURE
@@ -890,6 +909,20 @@
     if (NUMBER_OF_SIMULTANEOUS_RUNS > 1 .and. BROADCAST_SAME_MESH_AND_MODEL) &
       stop 'Error ADIOS not yet supported by option BROADCAST_SAME_MESH_AND_MODEL'
   endif
+
+#if !defined(USE_ADIOS) && !defined(USE_ADIOS2)
+  if (ADIOS_ENABLED) then
+    print *
+    print *,'**************'
+    print *,'**************'
+    print *,'ADIOS is enabled in parameter file but the code was not compiled with ADIOS support.'
+    print *,'See --with-adios configure options.'
+    print *,'**************'
+    print *,'**************'
+    print *
+    stop 'an error occurred while reading the parameter file: ADIOS is enabled but code not built with ADIOS'
+  endif
+#endif
 
   ! PML
   if (PML_CONDITIONS) then
@@ -924,6 +957,10 @@
   ! PARTITIONING_TYPE
   if (PARTITIONING_TYPE < 1 .or. PARTITIONING_TYPE > 4) &
     stop 'PARTITIONING_TYPE must be 1,2,3 or 4 (for SCOTCH, METIS, PATOH or ROW_PARTS partitioner)'
+
+  ! shakemap
+  if (CREATE_SHAKEMAP .and. (MOVIE_TYPE < 1 .or. MOVIE_TYPE > 3)) &
+    stop 'MOVIE_TYPE value must be 1, 2 or 3 for CREATE_SHAKEMAP simulations'
 
   ! Warnings
 
@@ -1017,21 +1054,21 @@
     !SAVE_DISPLACEMENT = .true.         ! (not necessary) stores displacement (flag not necessary, but to avoid confusion)
   endif
 
-  ! make sure NSTEP is a multiple of subsamp_seismos
+  ! make sure NSTEP is a multiple of NTSTEP_BETWEEN_OUTPUT_SAMPLE
   ! if not, increase it a little bit, to the next multiple
-  if (mod(NSTEP,subsamp_seismos) /= 0) then
+  if (mod(NSTEP,NTSTEP_BETWEEN_OUTPUT_SAMPLE) /= 0) then
     if (NOISE_TOMOGRAPHY /= 0) then
       if (myrank == 0) then
-        print *,'Noise simulation: Invalid number of NSTEP = ',NSTEP
-        print *,'Must be a multiple of subsamp_seismos = ',subsamp_seismos
+        print *,'Noise simulation: Invalid number of NSTEP          = ',NSTEP
+        print *,'Must be a multiple of NTSTEP_BETWEEN_OUTPUT_SAMPLE = ',NTSTEP_BETWEEN_OUTPUT_SAMPLE
       endif
-      stop 'Error: NSTEP must be a multiple of subsamp_seismos'
+      stop 'Error: NSTEP must be a multiple of NTSTEP_BETWEEN_OUTPUT_SAMPLE'
     else
-      NSTEP = (NSTEP/subsamp_seismos + 1)*subsamp_seismos
+      NSTEP = (NSTEP/NTSTEP_BETWEEN_OUTPUT_SAMPLE + 1)*NTSTEP_BETWEEN_OUTPUT_SAMPLE
       ! user output
       if (myrank == 0) then
         print *
-        print *,'NSTEP is not a multiple of subsamp_seismos'
+        print *,'NSTEP is not a multiple of NTSTEP_BETWEEN_OUTPUT_SAMPLE'
         print *,'thus increasing it automatically to the next multiple, which is ',NSTEP
         print *
       endif
@@ -1041,13 +1078,13 @@
   ! output seismograms at least once at the end of the simulation
   NTSTEP_BETWEEN_OUTPUT_SEISMOS = min(NSTEP,NTSTEP_BETWEEN_OUTPUT_SEISMOS)
 
-  ! make sure NSTEP_BETWEEN_OUTPUT_SEISMOS is a multiple of subsamp_seismos
-  if (mod(NTSTEP_BETWEEN_OUTPUT_SEISMOS,subsamp_seismos) /= 0) then
+  ! make sure NSTEP_BETWEEN_OUTPUT_SEISMOS is a multiple of NTSTEP_BETWEEN_OUTPUT_SAMPLE
+  if (mod(NTSTEP_BETWEEN_OUTPUT_SEISMOS,NTSTEP_BETWEEN_OUTPUT_SAMPLE) /= 0) then
     if (myrank == 0) then
-      print *,'Invalid number of NTSTEP_BETWEEN_OUTPUT_SEISMOS = ',NTSTEP_BETWEEN_OUTPUT_SEISMOS
-      print *,'Must be a multiple of subsamp_seismos = ',subsamp_seismos
+      print *,'Invalid number of NTSTEP_BETWEEN_OUTPUT_SEISMOS    = ',NTSTEP_BETWEEN_OUTPUT_SEISMOS
+      print *,'Must be a multiple of NTSTEP_BETWEEN_OUTPUT_SAMPLE = ',NTSTEP_BETWEEN_OUTPUT_SAMPLE
     endif
-    stop 'Error: NTSTEP_BETWEEN_OUTPUT_SEISMOS must be a multiple of subsamp_seismos'
+    stop 'Error: NTSTEP_BETWEEN_OUTPUT_SEISMOS must be a multiple of NTSTEP_BETWEEN_OUTPUT_SAMPLE'
   endif
 
   ! the default value of NTSTEP_BETWEEN_READ_ADJSRC (0) is to read the whole trace at the same time
@@ -1087,7 +1124,13 @@
   endif
 
   ! determines number of sources depending on number of lines in sources file
-  call get_number_of_sources(sources_filename)
+  if (INVERSE_FWI_FULL_PROBLEM) then
+    ! sources will be set later in input_output_mod.f90 based on acquisition setting
+    NSOURCES = 0
+  else
+    ! gets number of sources
+    call count_number_of_sources(NSOURCES,sources_filename)
+  endif
 
   ! converts all string characters to lowercase
   irange = iachar('a') - iachar('A')
@@ -1155,159 +1198,11 @@
   ! check
   if (IMODEL == IMODEL_IPATI .or. IMODEL == IMODEL_IPATI_WATER) then
     if (USE_RICKER_TIME_FUNCTION .eqv. .false.) &
-      stop 'Error for IPATI model, please set USE_RICKER_TIME_FUNCTION to .true. in Par_file and recompile solver'
+      stop 'Error for IPATI model, please set USE_RICKER_TIME_FUNCTION to .true. in Par_file and rerun solver'
   endif
 
   end subroutine read_compute_parameters
 
-!
-!-------------------------------------------------------------------------------------------------
-!
-
-  subroutine get_number_of_sources(sources_filename)
-
-! determines number of sources depending on number of lines in source file
-! (only executed by main process)
-
-  use constants, only: IIN,IIN_PAR,IN_DATA_FILES,HUGEVAL,TINYVAL, &
-    NLINES_PER_CMTSOLUTION_SOURCE,NLINES_PER_FORCESOLUTION_SOURCE
-
-  use shared_parameters
-
-  implicit none
-
-  character(len=MAX_STRING_LEN),intent(in) :: sources_filename
-
-  ! local variables
-  integer :: icounter,isource,idummy,ier,nlines_per_source
-  double precision :: hdur, minval_hdur
-  character(len=MAX_STRING_LEN) :: dummystring
-
-  ! initializes
-  NSOURCES = 0
-
-  ! checks if finite fault source
-  open(unit=IIN_PAR,file=IN_DATA_FILES(1:len_trim(IN_DATA_FILES))//'Par_file_faults',status='old',iostat=ier)
-  if (ier == 0) then
-    HAS_FINITE_FAULT_SOURCE = .true.
-    !write(IMAIN,*) 'provides finite faults'
-    close(IIN_PAR)
-  else
-    HAS_FINITE_FAULT_SOURCE = .false.
-  endif
-
-  ! gets number of point sources
-  if (USE_FORCE_POINT_SOURCE) then
-    ! compute the total number of sources in the FORCESOLUTION file
-    ! there are NLINES_PER_FORCESOLUTION_SOURCE lines per source in that file
-    open(unit=IIN,file=trim(sources_filename),status='old',action='read',iostat=ier)
-    if (ier /= 0) then
-      if (HAS_FINITE_FAULT_SOURCE) then
-        ! no need for FORCESOLUTION file
-        return
-      else
-        stop 'Error opening FORCESOLUTION file'
-      endif
-    endif
-    !write(IMAIN,*) 'provides force solution'
-
-    icounter = 0
-    do while (ier == 0)
-      read(IIN,"(a)",iostat=ier) dummystring
-      if (ier == 0) icounter = icounter + 1
-    enddo
-    close(IIN)
-
-    ! number of lines for source description
-    if (USE_EXTERNAL_SOURCE_FILE) then
-      !! VM VM in case of USE_EXTERNAL_SOURCE_FILE we have to read one additional line per source (the name of external source file)
-      nlines_per_source = NLINES_PER_FORCESOLUTION_SOURCE + 1
-    else
-      nlines_per_source = NLINES_PER_FORCESOLUTION_SOURCE
-    endif
-
-    ! checks lines are a multiple
-    if (mod(icounter,nlines_per_source) /= 0) then
-      print *,'Error: total number of lines in FORCESOLUTION file should be a multiple of ',nlines_per_source
-      stop 'Error total number of lines in FORCESOLUTION file should be a multiple of NLINES_PER_FORCESOLUTION_SOURCE'
-    endif
-
-    ! number of sources in file
-    NSOURCES = icounter / nlines_per_source
-
-    ! checks if any
-    if (NSOURCES < 1) stop 'Error need at least one source in FORCESOLUTION file'
-
-  else
-    ! compute the total number of sources in the CMTSOLUTION file
-    ! there are NLINES_PER_CMTSOLUTION_SOURCE lines per source in that file
-    open(unit=IIN,file=trim(sources_filename),status='old',action='read',iostat=ier)
-    if (ier /= 0) then
-      if (HAS_FINITE_FAULT_SOURCE) then
-        ! no need for CMTSOLUTION file
-        return
-      else
-        stop 'Error opening CMTSOLUTION file'
-      endif
-    endif
-    !write(IMAIN,*) 'provides CMT solution'
-
-    icounter = 0
-    do while (ier == 0)
-      read(IIN,"(a)",iostat=ier) dummystring
-      if (ier == 0) icounter = icounter + 1
-    enddo
-    close(IIN)
-
-    ! number of lines for source description
-    if (USE_EXTERNAL_SOURCE_FILE) then
-      !! VM VM in case of USE_EXTERNAL_SOURCE_FILE we have to read one additional line per source (the name of external source file)
-      nlines_per_source = NLINES_PER_CMTSOLUTION_SOURCE + 1
-    else
-      nlines_per_source = NLINES_PER_CMTSOLUTION_SOURCE
-    endif
-
-    ! checks number of lines
-    if (mod(icounter,nlines_per_source) /= 0) then
-      print *,'Error: total number of lines in CMTSOLUTION file should be a multiple of ',nlines_per_source
-      stop 'Error total number of lines in CMTSOLUTION file should be a multiple of NLINES_PER_CMTSOLUTION_SOURCE'
-    endif
-
-    ! number of sources in file
-    NSOURCES = icounter / nlines_per_source
-
-    ! checks if any
-    if (NSOURCES < 1) stop 'Error need at least one source in CMTSOLUTION file'
-
-    ! compute the minimum value of hdur in CMTSOLUTION file
-    open(unit=IIN,file=trim(sources_filename),status='old',action='read')
-    minval_hdur = HUGEVAL
-    do isource = 1,NSOURCES
-
-      ! skip other information
-      do idummy = 1,3
-        read(IIN,"(a)") dummystring
-      enddo
-
-      ! read half duration and compute minimum
-      read(IIN,"(a)") dummystring
-      read(dummystring(15:len_trim(dummystring)),*) hdur
-      minval_hdur = min(minval_hdur,hdur)
-
-      ! reads till the end of this source
-      do idummy = 5,nlines_per_source
-        read(IIN,"(a)") dummystring
-      enddo
-
-    enddo
-    close(IIN)
-
-    ! one cannot use a Heaviside source for the movies
-    if ((MOVIE_SURFACE .or. MOVIE_VOLUME) .and. sqrt(minval_hdur**2 + HDUR_MOVIE**2) < TINYVAL) &
-      stop 'Error hdur too small for movie creation, movies do not make sense for Heaviside source'
-  endif
-
-  end subroutine get_number_of_sources
 
 !
 !-------------------------------------------------------------------------------------------------
@@ -1407,7 +1302,7 @@
   call bcast_all_singlel(SAVE_SEISMOGRAMS_ACCELERATION)
   call bcast_all_singlel(SAVE_SEISMOGRAMS_PRESSURE)
   call bcast_all_singlel(SAVE_SEISMOGRAMS_IN_ADJOINT_RUN)
-  call bcast_all_singlei(subsamp_seismos)
+  call bcast_all_singlei(NTSTEP_BETWEEN_OUTPUT_SAMPLE)
   call bcast_all_singlel(USE_BINARY_FOR_SEISMOGRAMS)
   call bcast_all_singlel(SU_FORMAT)
   call bcast_all_singlel(ASDF_FORMAT)
@@ -1452,6 +1347,7 @@
   call bcast_all_singlel(ADIOS_FOR_MESH)
   call bcast_all_singlel(ADIOS_FOR_FORWARD_ARRAYS)
   call bcast_all_singlel(ADIOS_FOR_KERNELS)
+  call bcast_all_singlel(ADIOS_FOR_UNDO_ATTENUATION)
 
   ! broadcast all parameters computed from others
   call bcast_all_singlei(IMODEL)

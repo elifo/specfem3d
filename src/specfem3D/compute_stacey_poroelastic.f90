@@ -1,7 +1,7 @@
 !=====================================================================
 !
-!               S p e c f e m 3 D  V e r s i o n  3 . 0
-!               ---------------------------------------
+!                          S p e c f e m 3 D
+!                          -----------------
 !
 !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
 !                              CNRS, France
@@ -98,7 +98,7 @@
     call read_abs(IOABS,b_absorb_fieldw,b_reclen_field_poro,NSTEP-it+1)
   endif
 
-  ! absorbs absorbing-boundary surface using Stacey condition (Clayton & Enquist)
+  ! absorbs absorbing-boundary surface using Stacey condition (Clayton & Engquist)
   do iface = 1,num_abs_boundary_faces
 
     ispec = abs_boundary_ispec(iface)

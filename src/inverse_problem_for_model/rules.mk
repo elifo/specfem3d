@@ -1,13 +1,13 @@
 #=====================================================================
 #
-#               S p e c f e m 3 D  V e r s i o n  3 . 0
-#               ---------------------------------------
+#                         S p e c f e m 3 D
+#                         -----------------
 #
 #     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
-#                        Princeton University, USA
-#                and CNRS / University of Marseille, France
+#                              CNRS, France
+#                       and Princeton University, USA
 #                 (there are currently many more authors!)
-# (c) Princeton University and CNRS / University of Marseille, July 2012
+#                           (c) October 2017
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,10 +24,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 #=====================================================================
-
-# I make this Makefile serial for now because I do not know how to write a clean rules.mk here with all the right dependencies
-# If someone knows how to do that then please do it (in this rules.mk file only; all the others in other directories are already OK)
-#.NOTPARALLEL:
 
 ## compilation directories
 S := ${S_TOP}/src/inverse_problem_for_model
@@ -203,8 +199,10 @@ inverse_problem_for_model_OBJECTS += \
 
 inverse_problem_for_model_SHARED_OBJECTS = \
 	$O/shared_par.shared_module.o \
+	$O/adios_manager.shared_adios_module.o \
 	$O/assemble_MPI_scalar.shared.o \
 	$O/check_mesh_resolution.shared.o \
+	$O/count_number_of_sources.shared.o \
 	$O/create_name_database.shared.o \
 	$O/define_derivation_matrices.shared.o \
 	$O/detect_surface.shared.o \
@@ -289,19 +287,31 @@ adios_inverse_problem_for_model_OBJECTS= \
 	$O/read_mesh_databases_adios.spec_adios.o \
 	$O/save_forward_arrays_adios.spec_adios.o \
 	$O/read_forward_arrays_adios.spec_adios.o \
-	$O/save_kernels_adios.spec_adios.o
+	$O/save_kernels_adios.spec_adios.o \
+	$(EMPTY_MACRO)
 
 adios_inverse_problem_for_model_PREOBJECTS = \
-	$O/adios_manager.shared_adios.o \
-	$O/adios_helpers_definitions.shared_adios_module.o \
-	$O/adios_helpers_writers.shared_adios_module.o \
-	$O/adios_helpers.shared_adios.o
+	$O/adios_helpers_addons.shared_adios_cc.o \
+	$O/adios_helpers_definitions.shared_adios.o \
+	$O/adios_helpers_readers.shared_adios.o \
+	$O/adios_helpers_writers.shared_adios.o \
+	$O/adios_helpers.shared_adios.o \
+	$(EMPTY_MACRO)
 
 adios_inverse_problem_for_model_STUBS = \
-	$O/specfem3D_adios_stubs.spec_noadios.o
+	$O/adios_method_stubs.cc.o \
+	$(EMPTY_MACRO)
 
-adios_inverse_problem_for_model_PRESTUBS = \
-	$O/adios_manager_stubs.shared_noadios.o
+# conditional adios linking
+ifeq ($(ADIOS),yes)
+inverse_problem_for_model_OBJECTS += $(adios_inverse_problem_for_model_OBJECTS)
+inverse_problem_for_model_SHARED_OBJECTS += $(adios_inverse_problem_for_model_PREOBJECTS)
+else ifeq ($(ADIOS2),yes)
+inverse_problem_for_model_OBJECTS += $(adios_inverse_problem_for_model_OBJECTS)
+inverse_problem_for_model_SHARED_OBJECTS += $(adios_inverse_problem_for_model_PREOBJECTS)
+else
+inverse_problem_for_model_OBJECTS += $(adios_inverse_problem_for_model_STUBS)
+endif
 
 
 # conditional asdf linking
@@ -314,16 +324,7 @@ inverse_problem_for_model_OBJECTS += $(asdf_specfem3D_STUBS)
 inverse_problem_for_model_SHARED_OBJECTS += $(asdf_specfem3D_SHARED_STUBS)
 endif
 
-
-# conditional adios linking
-ifeq ($(ADIOS),no)
-adios_inverse_problem_for_model_OBJECTS = $(adios_inverse_problem_for_model_STUBS)
-adios_inverse_problem_for_model_PREOBJECTS = $(adios_inverse_problem_for_model_PRESTUBS)
-endif
-inverse_problem_for_model_OBJECTS += $(adios_inverse_problem_for_model_OBJECTS)
-inverse_problem_for_model_SHARED_OBJECTS += $(adios_inverse_problem_for_model_PREOBJECTS)
-
-
+# vtk
 ifeq ($(VTK),yes)
 inverse_problem_for_model_OBJECTS += \
 	$O/vtk_window_stubs.visualcc.o \
@@ -370,7 +371,11 @@ $O/interpolation_mod.inv_input.o: $O/shared_par.shared_module.o
 $O/signal_processing_mod.inv_adjoint_source.o: $O/specfem3D_par.spec_module.o
 
 $O/mesh_tools_mod.inv_input.o: $O/inverse_problem_par.inv_par.o
-$O/IO_model_mod.inv_input.o: $O/mesh_tools_mod.inv_input.o
+$O/IO_model_mod.inv_input.o: \
+	$O/mesh_tools_mod.inv_input.o \
+	$O/shared_par.shared_module.o \
+	$O/specfem3D_par.spec_module.o \
+	$O/create_color_image.spec.o
 
 $O/rotations_mod.inv_adjoint_source.o: $O/interpolation_mod.inv_input.o
 $O/adjoint_source_mod.inv_adjoint_source.o: $O/signal_processing_mod.inv_adjoint_source.o $O/rotations_mod.inv_adjoint_source.o
@@ -389,7 +394,10 @@ $O/input_output_mod.inv_input.o: \
 $O/specfem_interface_mod.inv_specfem_interface.o: \
 	$O/adjoint_source_mod.inv_adjoint_source.o \
 	$O/input_output_mod.inv_input.o \
-	$O/signal_processing_mod.inv_adjoint_source.o
+	$O/signal_processing_mod.inv_adjoint_source.o \
+	$O/shared_par.shared_module.o \
+	$O/specfem3D_par.spec_module.o \
+	$O/create_color_image.spec.o
 
 $O/regularization_interface.inv_regularization.o: $O/regularization_SEM_mod.inv_regularization.o $O/regularization_FD_mod.inv_regularization.o
 
@@ -412,6 +420,8 @@ $O/inverse_problem_main.inv.o: \
 	$O/projection_on_FD_grid_mod.inv_projection.o \
 	$O/specfem_interface_mod.inv_specfem_interface.o \
 	$O/fwi_iteration_mod.inv_inversion.o
+
+$O/parallel_for_inverse_problem.invmpi.o: $(COND_MPI_OBJECTS)
 
 ####
 #### rule to build each .o file

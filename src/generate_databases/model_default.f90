@@ -1,7 +1,7 @@
 !=====================================================================
 !
-!               S p e c f e m 3 D  V e r s i o n  3 . 0
-!               ---------------------------------------
+!                          S p e c f e m 3 D
+!                          -----------------
 !
 !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
 !                              CNRS, France
@@ -31,9 +31,7 @@
 !
 !--------------------------------------------------------------------------------------------------
 
-  subroutine model_default(mat_prop,nmat_ext_mesh, &
-                           undef_mat_prop,nundefMat_ext_mesh, &
-                           imaterial_id,imaterial_def, &
+  subroutine model_default(imaterial_id,imaterial_def, &
                            xmesh,ymesh,zmesh, &
                            rho,vp,vs,iflag_aniso,qkappa_atten,qmu_atten,idomain_id, &
                            rho_s,kappa_s,rho_f,kappa_f,eta_f,kappa_fr,mu_fr, &
@@ -43,15 +41,13 @@
 ! takes model values specified by mesh properties
 
   use generate_databases_par, only: IDOMAIN_ACOUSTIC,IDOMAIN_ELASTIC,IDOMAIN_POROELASTIC
+
+  use generate_databases_par, only: mat_prop,nmat_ext_mesh, &
+                                    undef_mat_prop,nundefMat_ext_mesh
+
   use create_regions_mesh_ext_par, only: CUSTOM_REAL,MAX_STRING_LEN
 
   implicit none
-
-  integer, intent(in) :: nmat_ext_mesh
-  double precision, dimension(17,nmat_ext_mesh), intent(in) :: mat_prop
-
-  integer, intent(in) :: nundefMat_ext_mesh
-  character(len=MAX_STRING_LEN), dimension(6,nundefMat_ext_mesh) :: undef_mat_prop
 
   integer, intent(in) :: imaterial_id,imaterial_def
 
@@ -96,6 +92,28 @@
   kappa_fr = 0._CUSTOM_REAL
   mu_fr = 0._CUSTOM_REAL
 
+  c11 = 0._CUSTOM_REAL
+  c12 = 0._CUSTOM_REAL
+  c13 = 0._CUSTOM_REAL
+  c14 = 0._CUSTOM_REAL
+  c15 = 0._CUSTOM_REAL
+  c16 = 0._CUSTOM_REAL
+  c22 = 0._CUSTOM_REAL
+  c23 = 0._CUSTOM_REAL
+  c24 = 0._CUSTOM_REAL
+  c25 = 0._CUSTOM_REAL
+  c26 = 0._CUSTOM_REAL
+  c33 = 0._CUSTOM_REAL
+  c34 = 0._CUSTOM_REAL
+  c35 = 0._CUSTOM_REAL
+  c36 = 0._CUSTOM_REAL
+  c44 = 0._CUSTOM_REAL
+  c45 = 0._CUSTOM_REAL
+  c46 = 0._CUSTOM_REAL
+  c55 = 0._CUSTOM_REAL
+  c56 = 0._CUSTOM_REAL
+  c66 = 0._CUSTOM_REAL
+
   ! check if the material is known or unknown
   if (imaterial_id > 0) then
     ! gets velocity model as specified by (cubit) mesh files for elastic & acoustic
@@ -108,6 +126,9 @@
 
     case (IDOMAIN_ACOUSTIC,IDOMAIN_ELASTIC)
       ! (visco)elastic or acoustic
+
+      ! checks number of material parameters
+      if (imaterial_id > nmat_ext_mesh) stop 'Error invalid material id, exceeds nmat_ext_mesh for acoustic/elastic material'
 
       ! density
       ! mat_prop format:
@@ -127,6 +148,10 @@
 
     case (IDOMAIN_POROELASTIC)
       ! poroelastic
+
+      ! checks number of material parameters
+      if (imaterial_id > nmat_ext_mesh) stop 'Error invalid material id, exceeds nmat_ext_mesh for poroelastic material'
+
       ! mat_prop format:
       ! # rho_s,rho_f,phi,tort,eta,0,domain_id,kxx,kxy,kxz,kyy,kyz,kzz,kappa_s,kappa_f,kappa_fr,mu_fr,
       !

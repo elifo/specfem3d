@@ -1,7 +1,7 @@
 !=====================================================================
 !
-!               S p e c f e m 3 D  V e r s i o n  3 . 0
-!               ---------------------------------------
+!                          S p e c f e m 3 D
+!                          -----------------
 !
 !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
 !                              CNRS, France
@@ -99,6 +99,10 @@
                                NSPEC_AB,NGLOB_AB, &
                                num_free_surface_faces,free_surface_ispec,free_surface_ijk, &
                                ispec_is_acoustic)
+
+    ! read noise distribution and direction
+    call read_noise_distribution_direction(NGLLSQUARE*num_free_surface_faces, &
+                                           normal_x_noise,normal_y_noise,normal_z_noise,mask_noise)
 
     ! checks flags for noise simulation
     call check_parameters_noise(NOISE_TOMOGRAPHY,SIMULATION_TYPE,SAVE_FORWARD, &

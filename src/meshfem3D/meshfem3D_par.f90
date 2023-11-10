@@ -1,7 +1,7 @@
 !=====================================================================
 !
-!               S p e c f e m 3 D  V e r s i o n  3 . 0
-!               ---------------------------------------
+!                          S p e c f e m 3 D
+!                          -----------------
 !
 !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
 !                              CNRS, France
@@ -26,11 +26,11 @@
 !=====================================================================
 
 
-module constants_meshfem3D
+module constants_meshfem
 
   include "constants_meshfem3D.h"
 
-end module constants_meshfem3D
+end module constants_meshfem
 
 !
 !----------------------------------------------------------------------------------------------------
@@ -38,40 +38,40 @@ end module constants_meshfem3D
 
 ! main parameter module for xmeshfem3D mesher
 
-module meshfem3D_par
+module meshfem_par
 
   use constants
 
-  use constants_meshfem3D
+  use constants_meshfem
 
   use shared_parameters
 
   implicit none
 
-! number of spectral elements in each block
+  ! number of spectral elements in each block
   integer :: nspec
 
-! meshing parameters
+  ! meshing parameters
   double precision, dimension(:,:,:), allocatable :: xgrid,ygrid,zgrid
   integer, dimension(:,:,:,:), allocatable :: ibool
 
-! arrays with the mesh in double precision
+  ! arrays with the mesh in double precision
   double precision, dimension(:,:,:,:), allocatable :: xstore,ystore,zstore
 
-! proc numbers for MPI
+  ! proc numbers for MPI
   integer :: sizeprocs
 
-! mesh point steps for interfaces
+  ! mesh point steps for interfaces
   integer :: npx_element_steps,npy_element_steps
 
-! for loop on all the slices
+  ! for loop on all the slices
   integer, dimension(:,:), allocatable :: addressing
 
-! addressing for all the slices
+  ! addressing for all the slices
   integer, dimension(:), allocatable :: iproc_xi_slice,iproc_eta_slice
   integer :: iproc_xi_current,iproc_eta_current
 
-! parameters read from mesh parameter file
+  ! parameters read from mesh parameter file
   integer :: NEX_XI,NEX_ETA,NPROC_XI,NPROC_ETA
 
   double precision :: UTM_X_MIN,UTM_X_MAX,UTM_Y_MIN,UTM_Y_MAX
@@ -80,24 +80,24 @@ module meshfem3D_par
 
   logical :: USE_REGULAR_MESH
 
-! Mesh files for visualization
+  ! Mesh files for visualization
   logical :: CREATE_ABAQUS_FILES,CREATE_DX_FILES,CREATE_VTK_FILES
 
-! CPML
+  ! CPML
   double precision :: THICKNESS_OF_X_PML,THICKNESS_OF_Y_PML,THICKNESS_OF_Z_PML
   logical, dimension(:), allocatable :: is_CPML
   integer, dimension(:), allocatable :: CPML_to_spec,CPML_regions
   integer :: nspec_CPML
 
-! doublings parameters
+  ! doublings parameters
   integer :: NDOUBLINGS
   integer, dimension(:),allocatable :: ner_doublings
 
-! parameters deduced from parameters read from file
+  ! parameters deduced from parameters read from file
   integer :: NEX_PER_PROC_XI,NEX_PER_PROC_ETA
   integer :: NER
 
-! this for all the regions
+  ! this for all the regions
   integer :: NSPEC_AB,NGLOB_AB
   integer :: NSPEC2D_A_XI,NSPEC2D_B_XI, &
              NSPEC2D_A_ETA,NSPEC2D_B_ETA, &
@@ -105,7 +105,7 @@ module meshfem3D_par
              NSPEC2D_BOTTOM,NSPEC2D_TOP, &
              NPOIN2DMAX_XMIN_XMAX,NPOIN2DMAX_YMIN_YMAX
 
-! interfaces parameters
+  ! interfaces parameters
   integer :: number_of_interfaces,number_of_layers
   integer :: max_npx_interface,max_npy_interface
 
@@ -113,28 +113,30 @@ module meshfem3D_par
 
   integer, dimension(:), allocatable :: ner_layer
 
-! cavity parameters
+  ! cavity parameters
   character(len=MAX_STRING_LEN) :: CAVITY_FILE
 
-! subregions parameters
+  ! subregions parameters
   integer :: NSUBREGIONS
-!  definition of the different regions of the model in the mesh (nx,ny,nz)
-!  #1 #2 : nx_begining,nx_end
-!  #3 #4 : ny_begining,ny_end
-!  #5 #6 : nz_begining,nz_end
-!     #7 : material number
+  !  definition of the different regions of the model in the mesh (nx,ny,nz)
+  !  #1 #2 : nx_begining,nx_end
+  !  #3 #4 : ny_begining,ny_end
+  !  #5 #6 : nz_begining,nz_end
+  !     #7 : material number
   integer, dimension(:,:), allocatable :: subregions
 
-! material properties
+  ! material properties
   integer :: NMATERIALS
-! first dimension  : material_id
-! second dimension : #rho  #vp  #vs  #Q_Kappa  #Q_mu  #anisotropy_flag  #domain_id
+  ! first dimension  : material_id
+  ! second dimension : #rho  #vp  #vs  #Q_Kappa  #Q_mu  #anisotropy_flag  #domain_id ..
   double precision , dimension(:,:), allocatable :: material_properties
+  ! tomography materials
+  character(len=MAX_STRING_LEN), dimension(:,:), allocatable :: material_properties_undef
 
   logical :: BROADCAST_AFTER_READ
 
   ! name of the database file
   character(len=MAX_STRING_LEN) :: prname
 
-end module meshfem3D_par
+end module meshfem_par
 

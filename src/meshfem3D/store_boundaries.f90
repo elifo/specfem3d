@@ -1,7 +1,7 @@
 !=====================================================================
 !
-!               S p e c f e m 3 D  V e r s i o n  3 . 0
-!               ---------------------------------------
+!                          S p e c f e m 3 D
+!                          -----------------
 !
 !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
 !                              CNRS, France
@@ -139,7 +139,7 @@
 !                            NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX)
 !
 !  use constants
-!  use constants_meshfem3D, only: NGLLX_M,NGLLY_M,NGLLZ_M
+!  use constants_meshfem, only: NGLLX_M,NGLLY_M,NGLLZ_M
 !
 !  implicit none
 !

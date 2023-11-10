@@ -1,7 +1,7 @@
 !=====================================================================
 !
-!               S p e c f e m 3 D  V e r s i o n  3 . 0
-!               ---------------------------------------
+!                          S p e c f e m 3 D
+!                          -----------------
 !
 !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
 !                              CNRS, France
@@ -34,15 +34,15 @@
   use constants, only: MAX_STRING_LEN,IDOMAIN_ACOUSTIC,IDOMAIN_ELASTIC,IDOMAIN_POROELASTIC, &
     SAVE_MESH_AS_CUBIT,NDIM,IMAIN,IIN_DB,myrank
 
-  use constants_meshfem3D, only: NGLLX_M,NGLLY_M,NGLLZ_M
+  use constants_meshfem, only: NGLLX_M,NGLLY_M,NGLLZ_M
 
   use shared_parameters, only: COUPLE_WITH_INJECTION_TECHNIQUE,NGNOD,NGNOD2D
 
-  use meshfem3D_par, only: ibool,xstore,ystore,zstore, &
+  use meshfem_par, only: ibool,xstore,ystore,zstore, &
     addressing,NPROC_XI,NPROC_ETA,iproc_xi_current,iproc_eta_current, &
     prname, &
     NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX,NSPEC2D_BOTTOM,NSPEC2D_TOP, &
-    NMATERIALS,material_properties, &
+    NMATERIALS,material_properties,material_properties_undef, &
     nspec_CPML,is_CPML,CPML_to_spec,CPML_regions
 
   implicit none
@@ -205,18 +205,21 @@
       undef_mat_prop(:,:) = ''
       ! material id
       write(undef_mat_prop(1,1),*) mat_id
-      ! name
-      undef_mat_prop(2,1) = 'tomography'
+      ! keyword/domain/filename
+      undef_mat_prop(2,1) = material_properties_undef(i,1)  ! type-keyword : tomography/interface
+      undef_mat_prop(3,1) = material_properties_undef(i,2)  ! domain-name  : acoustic/elastic/poroelastic
+      undef_mat_prop(4,1) = material_properties_undef(i,3)  ! tomo-filename: tomography_model**.xyz
+      ! checks consistency between domain-name and domain_id
       select case (domain_id)
       case (IDOMAIN_ACOUSTIC)
-        undef_mat_prop(3,1) = 'acoustic'
+        if (trim(undef_mat_prop(3,1)) /= 'acoustic') stop 'Error in undef_mat_prop acoustic domain'
       case (IDOMAIN_ELASTIC)
-        undef_mat_prop(3,1) = 'elastic'
+        if (trim(undef_mat_prop(3,1)) /= 'elastic')  stop 'Error in undef_mat_prop elastic domain'
       case (IDOMAIN_POROELASTIC)
-        undef_mat_prop(3,1) = 'poroelastic'
+        if (trim(undef_mat_prop(3,1)) /= 'poroelastic')  stop 'Error in undef_mat_prop poroelastic domain'
       end select
-      ! default name
-      undef_mat_prop(4,1) = 'tomography_model.xyz'
+      ! default name if none given
+      if (trim(undef_mat_prop(4,1)) == "") undef_mat_prop(4,1) = 'tomography_model.xyz'
       ! default tomo-id (unused)
       write(undef_mat_prop(5,1),*) 0
       ! domain-id
@@ -605,10 +608,10 @@
                                              nspec_CPML_total)
 
   use constants, only: NDIM,IMAIN,myrank,IIN_DB
-  use constants_meshfem3D, only: NGLLX_M,NGLLY_M,NGLLZ_M
+  use constants_meshfem, only: NGLLX_M,NGLLY_M,NGLLZ_M
   use shared_parameters, only: NGNOD
 
-  use meshfem3D_par, only: ibool, &
+  use meshfem_par, only: ibool, &
     NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX,NSPEC2D_BOTTOM,NSPEC2D_TOP, &
     NMATERIALS,material_properties, &
     nspec_CPML,CPML_to_spec,CPML_regions
@@ -866,11 +869,11 @@
 
   use constants, only: NGLLX, NGLLY, NGLLZ, NDIM, ZERO, IMAIN, myrank, &
     INJECTION_TECHNIQUE_IS_AXISEM
-  use constants_meshfem3D, only: NGLLX_M,NGLLY_M,NGLLZ_M
+  use constants_meshfem, only: NGLLX_M,NGLLY_M,NGLLZ_M
 
   use shared_parameters, only: NGNOD,COUPLE_WITH_INJECTION_TECHNIQUE,INJECTION_TECHNIQUE_TYPE
 
-  use meshfem3D_par, only: NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX,NSPEC2D_BOTTOM,NSPEC2D_TOP
+  use meshfem_par, only: NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX,NSPEC2D_BOTTOM,NSPEC2D_TOP
 
   implicit none
 

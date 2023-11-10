@@ -9,7 +9,7 @@ dnl You must have recent versions of Autoconf and Automake installed.
 ############################################################
 
 AC_PREREQ(2.61)
-AC_INIT([Specfem3D], [3.0.0], [see the wiki], [Specfem3D])
+AC_INIT([Specfem3D], m4_normalize(m4_include([VERSION])), [see the wiki], [Specfem3D])
 AC_CONFIG_SRCDIR([src/specfem3D/specfem3D.F90])
 
 AC_CONFIG_HEADERS([setup/config.h])
@@ -139,6 +139,8 @@ AM_CONDITIONAL([COND_HIP_MI8], [test x"$want_hip" = xMI8])
 AM_CONDITIONAL([COND_HIP_MI25], [test x"$want_hip" = xMI25])
 AM_CONDITIONAL([COND_HIP_MI50], [test x"$want_hip" = xMI50])
 AM_CONDITIONAL([COND_HIP_MI100], [test x"$want_hip" = xMI100])
+AM_CONDITIONAL([COND_HIP_MI250], [test x"$want_hip" = xMI250])
+
 AM_CONDITIONAL([COND_HIP_CUDA5], [test x"$want_hip" = xcuda5])
 AM_CONDITIONAL([COND_HIP_CUDA6], [test x"$want_hip" = xcuda6])
 AM_CONDITIONAL([COND_HIP_CUDA7], [test x"$want_hip" = xcuda7])
@@ -148,20 +150,22 @@ AM_CONDITIONAL([COND_HIP_CUDA10], [test x"$want_hip" = xcuda10])
 AM_CONDITIONAL([COND_HIP_CUDA11], [test x"$want_hip" = xcuda11])
 
 ###
-### OPENMP
+### OpenMP
 ###
 
 AC_ARG_WITH([openmp],
     [AS_HELP_STRING([--with-openmp],
         [build OpenMP enabled version @<:@default=no@:>@])],
-    [want_with_omp="$withval"],
-    [want_with_omp=no])
+    [with_omp="$withval"],
+    [with_omp=no])
 AC_ARG_ENABLE([openmp],
     [AS_HELP_STRING([--enable-openmp],
         [build OpenMP enabled version @<:@default=no@:>@])],
-    [want_omp="$enableval"],
-    [want_omp=no])
-AM_CONDITIONAL([COND_OMP], [test x"$want_omp" != xno || test x"$want_with_omp" != xno])
+    [enable_omp="$enableval"],
+    [enable_omp=no])
+AS_IF([test x"$enable_omp" != xno || test x"$with_omp" != xno],
+    [want_omp=yes],[want_omp=no])
+AM_CONDITIONAL([COND_OMP], [test x"$want_omp" != xno])
 
 ###
 ### VTK
@@ -487,7 +491,7 @@ AS_IF([test x"$want_asdf" != xno], [
 #mpbl: adding flags to config.h.in through autoheader in order to save them into the adios file.
 #configure_flags_str="FC=$FC FCFLAGS=$FCFLAGS $FLAGS_CHECK"
 #AC_DEFINE_UNQUOTED([CONFIGURE_FLAGS],["${configure_flags_str}"],
- #         [configuration flags to be saved in the adios output file.])
+#         [configuration flags to be saved in the adios output file.])
 CONFIGURE_FLAGS="FC=$FC FCFLAGS=$FCFLAGS"
 AC_SUBST([CONFIGURE_FLAGS])
 
@@ -671,10 +675,10 @@ AM_CONDITIONAL([COND_HIP_PLATFORM_NVIDIA], [test x"$GPU_PLATFORM" = xnvidia])
 
 
 ###
-### OPENMP
+### OpenMP
 ###
 
-AS_IF([test x"$want_omp" != xno || test x"$want_with_omp" != xno], [
+AS_IF([test x"$want_omp" != xno], [
   AS_BOX([OpenMP])
   AC_MSG_NOTICE([OpenMP compilation is enabled])
 
@@ -713,17 +717,24 @@ AS_IF([test x"$want_vtk" != xno], [
 ##
 AS_BOX([git version info])
 CIG_PKG_GIT(SPECFEM3D)
+
 AC_DEFINE_UNQUOTED([SPECFEM3D_VERSION], ["$PACKAGE_VERSION"], [Define SPECFEM3D version])
 #AC_DEFINE_UNQUOTED([SPECFEM3D_DOI], ["10.5281/zenodo.xxxxx"], [Define SPECFEM3D doi])
-AS_IF([test -d $srcdir/.git], [
-    GIT_VERSION_DEPS="$srcdir/.git/logs/HEAD"
-    AC_MSG_NOTICE([building from git repository])
-    AC_SUBST(GIT_VERSION_DEPS)
-], [
-    dnl Only substitute if not in a git repository.
-    AC_MSG_NOTICE([not a git repository])
-    AC_CONFIG_FILES([setup/version.fh])
+
+AS_IF([test x"$SPECFEM3D_RELEASE_VERSION" = x0],[
+  AC_MSG_NOTICE([building from git repository])
+  GIT_PACKAGE_VERSION=$SPECFEM3D_GIT_REVISION
+  GIT_COMMIT_VERSION=$SPECFEM3D_GIT_HASH
+  GIT_DATE_VERSION=$SPECFEM3D_GIT_DATE
+],[
+  AC_MSG_NOTICE([not a git repository])
+  GIT_PACKAGE_VERSION=$PACKAGE_VERSION
+  GIT_COMMIT_VERSION="unknown"
+  GIT_DATE_VERSION="unknown"
 ])
+AC_SUBST([GIT_PACKAGE_VERSION])
+AC_SUBST([GIT_COMMIT_VERSION])
+AC_SUBST([GIT_DATE_VERSION])
 
 ############################################################
 
@@ -736,6 +747,7 @@ AC_CONFIG_FILES([
     setup/constants_tomography.h
     setup/precision.h
     setup/config.fh
+    setup/version.fh
 ])
 
 # Scotch makefile
@@ -765,6 +777,7 @@ AH_BOTTOM([
 /* map fails when output files are > 4GB, which is often the case for GPU simulations */
 #undef USE_MAP_FUNCTION
 ])
+
 
 dnl FYI, this is not a "result", but AS_ECHO is not available in 2.61, and it
 dnl basically works like a portable echo.

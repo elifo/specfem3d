@@ -1,7 +1,7 @@
 !=====================================================================
 !
-!               S p e c f e m 3 D  V e r s i o n  3 . 0
-!               ---------------------------------------
+!                          S p e c f e m 3 D
+!                          -----------------
 !
 !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
 !                              CNRS, France
@@ -529,7 +529,7 @@
 !
 
 
-  subroutine it_print_elapsed_time()
+  subroutine print_elapsed_time()
 
   use specfem_par
   use specfem_par_elastic
@@ -554,8 +554,9 @@
     write(IMAIN,*) 'Time loop finished. Timing info:'
     write(IMAIN,*) 'Total elapsed time in seconds = ',tCPU
     write(IMAIN,"(' Total elapsed time in hh:mm:ss = ',i6,' h ',i2.2,' m ',i2.2,' s')") ihours,iminutes,iseconds
+    write(IMAIN,*)
     call flush_IMAIN()
   endif
 
-  end subroutine it_print_elapsed_time
+  end subroutine print_elapsed_time
 

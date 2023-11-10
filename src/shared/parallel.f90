@@ -1,7 +1,7 @@
 !=====================================================================
 !
-!               S p e c f e m 3 D  V e r s i o n  3 . 0
-!               ---------------------------------------
+!                          S p e c f e m 3 D
+!                          -----------------
 !
 !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
 !                              CNRS, France
@@ -79,7 +79,7 @@ end module my_mpi
 
   integer :: myrank,ier
 
-! initialize the MPI communicator and start the NPROCTOT MPI processes.
+  ! initialize the MPI communicator and start the NPROCTOT MPI processes.
   call MPI_INIT(ier)
   if (ier /= 0 ) stop 'Error initializing MPI'
 
@@ -102,7 +102,7 @@ end module my_mpi
   call bcast_all_singlei(NUMBER_OF_SIMULTANEOUS_RUNS)
   call bcast_all_singlel(BROADCAST_SAME_MESH_AND_MODEL)
 
-! create sub-communicators if needed, if running more than one earthquake from the same job
+  ! create sub-communicators if needed, if running more than one earthquake from the same job
   call world_split()
 
   end subroutine init_mpi
@@ -182,7 +182,7 @@ end module my_mpi
 
   ! note: MPI_ABORT does not return, it makes the program exit with an error code of 30
   call MPI_ABORT(MPI_COMM_WORLD,30,ier)
-  stop 'error, program ended in exit_MPI'
+  stop 'error, program ended in abort_mpi'
 
   end subroutine abort_mpi
 
@@ -272,6 +272,26 @@ end module my_mpi
 
   end subroutine wait_req
 
+!
+!-------------------------------------------------------------------------------------------------
+!
+
+  logical function is_valid_comm(comm)
+
+  use my_mpi
+
+  implicit none
+
+  integer, intent(in) :: comm
+
+  ! tests if communicator is valid
+  if (comm == MPI_COMM_NULL) then
+    is_valid_comm = .false.
+  else
+    is_valid_comm = .true.
+  endif
+
+  end function is_valid_comm
 
 !-------------------------------------------------------------------------------------------------
 !
@@ -716,6 +736,27 @@ end module my_mpi
 !-------------------------------------------------------------------------------------------------
 !
 
+  subroutine max_allreduce_singlei(val,recvval)
+
+  use my_mpi
+
+  implicit none
+
+  integer,intent(in) :: val
+  integer,intent(out) :: recvval
+
+  ! local parameters
+  integer :: ier
+
+  call MPI_ALLREDUCE(val, recvval, 1, MPI_INTEGER, MPI_MAX, my_local_mpi_comm_world, ier)
+  if (ier /= 0) stop 'Allreduce to get single max value failed.'
+
+  end subroutine max_allreduce_singlei
+
+!
+!-------------------------------------------------------------------------------------------------
+!
+
   subroutine min_all_cr(sendbuf, recvbuf)
 
   use my_mpi
@@ -993,6 +1034,23 @@ end module my_mpi
   call MPI_REDUCE(sendbuf,recvbuf,1,MPI_DOUBLE_PRECISION,MPI_SUM,0,my_local_mpi_comm_world,ier)
 
   end subroutine sum_all_dp
+
+!
+!-------------------------------------------------------------------------------------------------
+!
+
+  subroutine sum_all_all_dp(sendbuf, recvbuf)
+
+  use my_mpi
+
+  implicit none
+
+  double precision :: sendbuf, recvbuf
+  integer :: ier
+
+  call MPI_ALLREDUCE(sendbuf,recvbuf,1,MPI_DOUBLE_PRECISION,MPI_SUM,my_local_mpi_comm_world,ier)
+
+  end subroutine sum_all_all_dp
 
 !
 !-------------------------------------------------------------------------------------------------
@@ -1840,8 +1898,38 @@ end module my_mpi
 !-------------------------------------------------------------------------------------------------
 !
 
-!  subroutine world_get_comm_self(comm)
-!  end subroutine world_get_comm_self
+  subroutine world_get_comm_self(comm)
+
+  use my_mpi
+
+  implicit none
+
+  integer,intent(out) :: comm
+
+  comm = MPI_COMM_SELF
+
+  end subroutine world_get_comm_self
+
+
+!
+!-------------------------------------------------------------------------------------------------
+!
+
+  subroutine world_comm_free(comm)
+
+  use my_mpi
+
+  implicit none
+
+  integer,intent(inout) :: comm
+
+  ! local parameters
+  integer :: ier
+
+  call MPI_Comm_free(comm,ier)
+  if (ier /= 0 ) stop 'Error freeing MPI communicator'
+
+  end subroutine world_comm_free
 
 !
 !-------------------------------------------------------------------------------------------------

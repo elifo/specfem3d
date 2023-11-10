@@ -1,7 +1,7 @@
 !=====================================================================
 !
-!               S p e c f e m 3 D  V e r s i o n  3 . 0
-!               ---------------------------------------
+!                          S p e c f e m 3 D
+!                          -----------------
 !
 !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
 !                              CNRS, France
@@ -28,7 +28,7 @@
 
   subroutine finalize_simulation()
 
-  use adios_manager_mod
+  use manager_adios
   use specfem_par
   use specfem_par_elastic
   use specfem_par_acoustic
@@ -37,6 +37,16 @@
   use gravity_perturbation, only: gravity_output, GRAVITY_SIMULATION
 
   implicit none
+
+  ! synchronize all processes, waits until all processes have written their seismograms
+  call synchronize_all()
+
+  ! user output
+  if (myrank == 0) then
+    write(IMAIN,*) 'finalizing simulation'
+    call flush_IMAIN()
+  endif
+  call synchronize_all()
 
   ! write gravity perturbations
   if (GRAVITY_SIMULATION) call gravity_output()
@@ -66,6 +76,53 @@
     endif
   endif
 
+  ! ADIOS file i/o
+  if (ADIOS_ENABLED) then
+    call finalize_adios()
+  endif
+
+  ! asdf finalizes
+  if ((SIMULATION_TYPE == 2 .or. SIMULATION_TYPE == 3) .and. READ_ADJSRC_ASDF) then
+    call asdf_cleanup()
+  endif
+
+  ! synchronize all
+  call synchronize_all()
+
+  ! frees dynamically allocated memory
+  call finalize_simulation_cleanup()
+
+  ! close the main output file
+  if (myrank == 0) then
+    write(IMAIN,*)
+    write(IMAIN,*) 'End of the simulation'
+    write(IMAIN,*)
+    call flush_IMAIN()
+    close(IMAIN)
+  endif
+
+  ! synchronize all the processes to make sure everybody has finished
+  call synchronize_all()
+
+  end subroutine finalize_simulation
+
+!
+!-------------------------------------------------------------------------------------------------
+!
+
+  subroutine finalize_simulation_cleanup()
+
+  use specfem_par
+  use specfem_par_acoustic
+  use specfem_par_elastic
+  use specfem_par_poroelastic
+
+  implicit none
+
+  ! from here on, no gpu data is needed anymore
+  ! frees allocated memory on GPU
+  if (GPU_MODE) call prepare_cleanup_device(Mesh_pointer,ACOUSTIC_SIMULATION,ELASTIC_SIMULATION,NOISE_TOMOGRAPHY)
+
   ! C-PML absorbing boundary conditions deallocates C_PML arrays
   if (PML_CONDITIONS) call pml_cleanup()
 
@@ -87,25 +144,30 @@
   deallocate(ibelm_bottom)
   deallocate(ibelm_top)
   ! sources
-  deallocate(islice_selected_source,ispec_selected_source)
-  deallocate(Mxx,Myy,Mzz,Mxy,Mxz,Myz)
-  deallocate(xi_source,eta_source,gamma_source)
-  deallocate(tshift_src,hdur,hdur_Gaussian)
-  deallocate(utm_x_source,utm_y_source)
-  deallocate(nu_source)
-  deallocate(user_source_time_function)
+  if (NSOURCES > 0) then
+    deallocate(islice_selected_source,ispec_selected_source)
+    deallocate(Mxx,Myy,Mzz,Mxy,Mxz,Myz)
+    deallocate(xi_source,eta_source,gamma_source)
+    deallocate(tshift_src,hdur,hdur_Gaussian)
+    deallocate(utm_x_source,utm_y_source)
+    deallocate(nu_source)
+    deallocate(user_source_time_function)
+  endif
   ! receivers
-  deallocate(islice_selected_rec,ispec_selected_rec)
-  deallocate(xi_receiver,eta_receiver,gamma_receiver)
-  deallocate(station_name,network_name)
-  deallocate(nu_rec)
-  deallocate(pm1_source_encoding)
-  deallocate(sourcearrays)
-  if (SIMULATION_TYPE == 2 .or. SIMULATION_TYPE == 3) deallocate(source_adjoint)
+  if (nrec > 0) then
+    deallocate(islice_selected_rec,ispec_selected_rec)
+    deallocate(xi_receiver,eta_receiver,gamma_receiver)
+    deallocate(station_name,network_name)
+    deallocate(nu_rec)
+  endif
+  if (allocated(pm1_source_encoding)) deallocate(pm1_source_encoding)
+  if (allocated(sourcearrays)) deallocate(sourcearrays)
+  if (allocated(source_adjoint)) deallocate(source_adjoint)
+
   ! receiver arrays
-  deallocate(number_receiver_global)
-  deallocate(hxir_store,hetar_store,hgammar_store)
-  if (SIMULATION_TYPE == 2) deallocate(hpxir_store,hpetar_store,hpgammar_store)
+  if (allocated(number_receiver_global)) deallocate(number_receiver_global)
+  if (allocated(hxir_store)) deallocate(hxir_store,hetar_store,hgammar_store)
+  if (allocated(hpxir_store)) deallocate(hpxir_store,hpetar_store,hpgammar_store)
   ! adjoint sources
   if (SIMULATION_TYPE == 2 .or. SIMULATION_TYPE == 3) then
     if (nadj_rec_local > 0) then
@@ -119,10 +181,10 @@
     endif
   endif
   ! seismograms
-  deallocate(seismograms_d,seismograms_v,seismograms_a,seismograms_p)
-  if (SIMULATION_TYPE == 2) deallocate(seismograms_eps)
+  if (allocated(seismograms_d)) deallocate(seismograms_d,seismograms_v,seismograms_a,seismograms_p)
+  if (allocated(seismograms_eps)) deallocate(seismograms_eps)
   ! moment tensor derivatives
-  if (nrec_local > 0 .and. SIMULATION_TYPE == 2) deallocate(Mxx_der,Myy_der,Mzz_der,Mxy_der,Mxz_der,Myz_der,sloc_der)
+  if (allocated(Mxx_der)) deallocate(Mxx_der,Myy_der,Mzz_der,Mxy_der,Mxz_der,Myz_der,sloc_der)
   ! mesh
   deallocate(ibool)
   deallocate(irregular_element_number)
@@ -132,25 +194,4 @@
   deallocate(kappastore,mustore,rhostore)
   deallocate(ispec_is_acoustic,ispec_is_elastic,ispec_is_poroelastic)
 
-  ! ADIOS file i/o
-  if (ADIOS_ENABLED) then
-    call adios_cleanup()
-  endif
-
-  ! asdf finalizes
-  if ((SIMULATION_TYPE == 2 .or. SIMULATION_TYPE == 3) .and. READ_ADJSRC_ASDF) then
-    call asdf_cleanup()
-  endif
-
-  ! close the main output file
-  if (myrank == 0) then
-    write(IMAIN,*)
-    write(IMAIN,*) 'End of the simulation'
-    write(IMAIN,*)
-    close(IMAIN)
-  endif
-
-  ! synchronize all the processes to make sure everybody has finished
-  call synchronize_all()
-
-  end subroutine finalize_simulation
+  end subroutine finalize_simulation_cleanup

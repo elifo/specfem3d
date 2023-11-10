@@ -34,6 +34,9 @@ env:
     #   CUDA         - flag for compilation with CUDA    
 
     # code coverage: mpi, using code coverage flags
+    - TESTID=0 TESTCOV=1 TESTDIR=22 TESTFLAGS="--with-mpi" CUDA=false
+
+    # code coverage: mpi, using code coverage flags
     - TESTID=1 TESTCOV=1 TESTDIR=1 TESTFLAGS="--with-mpi" CUDA=false
 
     # code coverage: mpi, using code coverage flags, additional tests
@@ -138,6 +141,9 @@ env:
     # waterlayered_poroelastic example
     - TESTID=35 TESTCOV=0 TESTDIR=28 TESTFLAGS="--enable-vectorization --with-mpi" CUDA=false
 
+    # inversion example
+    - TESTID=36 TESTCOV=1 TESTDIR=29 TESTFLAGS="--with-mpi" CUDA=false
+
 
 # additional ARM tests
 jobs:
@@ -167,8 +173,8 @@ before_install:
       # Push
       echo "Push request:"
       COMMIT_RANGE="$(echo ${TRAVIS_COMMIT_RANGE} | cut -d '.' -f 1,4 --output-delimiter '..')"
-      #DIFF="$(git diff --name-only ${COMMIT_RANGE} --)"
-      DIFF=$(git diff --name-only ${TRAVIS_COMMIT_RANGE})
+      DIFF="$(git diff --name-only ${COMMIT_RANGE} --)"
+      #DIFF=$(git diff --name-only ${TRAVIS_COMMIT_RANGE})
     else
       # PR build
       echo "Pull request:"

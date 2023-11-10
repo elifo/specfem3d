@@ -1,7 +1,7 @@
 !=====================================================================
 !
-!               S p e c f e m 3 D  V e r s i o n  3 . 0
-!               ---------------------------------------
+!                          S p e c f e m 3 D
+!                          -----------------
 !
 !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
 !                              CNRS, France
@@ -130,5 +130,8 @@ module pml_par
 
   integer :: b_reclen_PML_field,b_reclen_PML_potential
   real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: b_PML_field,b_PML_potential
+
+  ! convolution coefficients
+  logical,parameter :: FIRST_ORDER_CONVOLUTION = .false.
 
 end module pml_par

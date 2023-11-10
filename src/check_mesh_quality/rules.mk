@@ -1,13 +1,13 @@
 #=====================================================================
 #
-#               S p e c f e m 3 D  V e r s i o n  3 . 0
-#               ---------------------------------------
+#                         S p e c f e m 3 D
+#                         -----------------
 #
 #     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
-#                        Princeton University, USA
-#                and CNRS / University of Marseille, France
+#                              CNRS, France
+#                       and Princeton University, USA
 #                 (there are currently many more authors!)
-# (c) Princeton University and CNRS / University of Marseille, July 2012
+#                           (c) October 2017
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -65,11 +65,20 @@ xcheck_mesh_quality: $E/xcheck_mesh_quality
 convert_skewness_to_angle: xconvert_skewness_to_angle
 xconvert_skewness_to_angle: $E/xconvert_skewness_to_angle
 
-$E/xcheck_mesh_quality: $O/check_mesh_quality.check.o $O/shared_par.shared_module.o
+xcheck_mesh_quality_SHARED_OBJECTS = \
+	$O/shared_par.shared_module.o \
+	$O/count_number_of_sources.shared.o \
+	$O/exit_mpi.shared.o \
+	$O/param_reader.cc.o \
+	$O/read_parameter_file.shared.o \
+	$O/read_value_parameters.shared.o \
+	$(EMPTY_MACRO)
+
+$E/xcheck_mesh_quality: $O/check_mesh_quality.check.o $(xcheck_mesh_quality_SHARED_OBJECTS) $(COND_MPI_OBJECTS)
 	@echo ""
 	@echo "building xcheck_mesh_quality"
 	@echo ""
-	${FCLINK} -o  $E/xcheck_mesh_quality $O/check_mesh_quality.check.o $O/shared_par.shared_module.o
+	${FCLINK} -o $@ $+ $(MPILIBS)
 	@echo ""
 
 $E/xconvert_skewness_to_angle: $O/convert_skewness_to_angle.check.o $O/shared_par.shared_module.o

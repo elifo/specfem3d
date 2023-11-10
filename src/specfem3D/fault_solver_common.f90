@@ -1,7 +1,7 @@
 !=====================================================================
 !
-!               S p e c f e m 3 D  V e r s i o n  3 . 0
-!               ---------------------------------------
+!                          S p e c f e m 3 D
+!                          -----------------
 !
 !     Main historical authors: Dimitri Komatitsch and Jeroen Tromp
 !                              CNRS, France
@@ -240,7 +240,14 @@ contains
     enddo
   else
     ! dummy allocations (for subroutine arguments)
-    allocate(bc%coord(NDIM,1))
+    allocate(bc%coord(NDIM,1), &
+             bc%B(1), &
+             bc%Z(1), &
+             bc%invM1(1), &
+             bc%invM2(1), &
+             bc%ibulk1(1), &
+             bc%ibulk2(1), &
+             bc%R(NDIM,NDIM,1))
   endif
 
   ! fault parallelization across multiple MPI processes
@@ -511,28 +518,38 @@ contains
   ! counts fault points on specified fault
   dataT%npoin = 0
   do i = 1,np
+    ! format : #x  #y  #z  #name  #fault_id
+    ! example: -4500.0  0.0  0.0  faultst-045dp000 1
     read(IIN,*) xtarget,ytarget,ztarget,tmpname,jflt
     ! only points on this fault
     if (jflt == iflt) dataT%npoin = dataT%npoin + 1
   enddo
   close(IIN)
 
-  ! checks if anything left to do
-  if (dataT%npoin == 0) return
-
   ! allocates fault point arrays
-  allocate(dataT%iglob(dataT%npoin),stat=ier)
-  if (ier /= 0) call exit_MPI_without_rank('error allocating array 2171')
-  allocate(dataT%name(dataT%npoin),stat=ier)
-  if (ier /= 0) call exit_MPI_without_rank('error allocating array 2172')
-  ! Surendra: for parallel fault
-  allocate(dist_loc(dataT%npoin),stat=ier)
-  if (ier /= 0) call exit_MPI_without_rank('error allocating array 2173')
+  if (dataT%npoin > 0) then
+    allocate(dataT%iglob(dataT%npoin),stat=ier)
+    if (ier /= 0) call exit_MPI_without_rank('error allocating array 2171')
+    allocate(dataT%name(dataT%npoin),stat=ier)
+    if (ier /= 0) call exit_MPI_without_rank('error allocating array 2172')
+    ! for parallel fault
+    allocate(dist_loc(dataT%npoin),stat=ier)
+    if (ier /= 0) call exit_MPI_without_rank('error allocating array 2173')
+  else
+    ! dummy arrays
+    allocate(dataT%iglob(1), &
+             dataT%name(1), &
+             dist_loc(1),stat=ier)
+    if (ier /= 0) call exit_MPI_without_rank('error allocating array 2174')
+  endif
 
   ! initializes arrays
   dataT%iglob(:) = 0
   dataT%name(:) = ''
   dist_loc(:) = huge(distkeep)
+
+  ! checks if anything left to do
+  if (dataT%npoin == 0) return
 
   ! opens in fault stations
   open(IIN,file=IN_DATA_FILES(1:len_trim(IN_DATA_FILES))//'FAULT_STATIONS',status='old',action='read',iostat=ier)
@@ -547,6 +564,8 @@ contains
   ! reads in fault point positions
   k = 0
   do i = 1,np
+    ! format : #x  #y  #z  #name  #fault_id
+    ! example: -4500.0  0.0  0.0  faultst-045dp000 1
     read(IIN,*) xtarget,ytarget,ztarget,tmpname,jflt
 
     ! only points on this fault
@@ -669,9 +688,6 @@ contains
   else
     ! dummy allocations (for subroutine arguments)
     allocate(dataT%dat(1,1,1))
-    ! frees other arrays, no need to keep
-    deallocate(dataT%iglob)
-    deallocate(dataT%name)
   endif
 
   end subroutine init_dataT

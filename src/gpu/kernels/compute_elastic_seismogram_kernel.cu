@@ -51,6 +51,7 @@ __global__ void compute_elastic_seismogram_kernel(int nrec_local,
                                                   realw_const_p rmassx,
                                                   realw_const_p rmassy,
                                                   realw_const_p rmassz,
+                                                  int seismotype,
                                                   int it){
 
   int irec_local = blockIdx.x + blockIdx.y*gridDim.x;
@@ -86,15 +87,22 @@ __global__ void compute_elastic_seismogram_kernel(int nrec_local,
         realw hlagrange = hxir * hetar * hgammar;
         int iglob = d_ibool[INDEX4_PADDED(NGLLX,NGLLX,NGLLX,I,J,K,ispec)] - 1;
 
-        //sh_dxd[tx] = hlagrange * displ[NDIM*iglob];
-        // sh_dyd[tx] = hlagrange * displ[NDIM*iglob+1];
-        // sh_dzd[tx] = hlagrange * displ[NDIM*iglob+2];
-        // Elif: write forces for Los Alamos, use only save_accel!!!
-        sh_dxd[tx] = hlagrange * displ[NDIM*iglob]/ rmassx[iglob];
-        sh_dyd[tx] = hlagrange * displ[NDIM*iglob+1]/rmassy[iglob];
-        sh_dzd[tx] = hlagrange * displ[NDIM*iglob+2]/ rmassz[iglob];
 
-
+        // default way of writing out displ/veloc/accel
+        if (seismotype != 1) {
+        sh_dxd[tx] = hlagrange * displ[NDIM*iglob];
+        sh_dyd[tx] = hlagrange * displ[NDIM*iglob+1];
+        sh_dzd[tx] = hlagrange * displ[NDIM*iglob+2];
+        }
+        // Elif: write forces for Los Alamos, use save_displacement=True!!!
+        if ( seismotype == 1) {
+           sh_dxd[tx] = hlagrange * displ[NDIM*iglob]/ rmassx[iglob];
+           sh_dyd[tx] = hlagrange * displ[NDIM*iglob+1]/rmassy[iglob];
+           sh_dzd[tx] = hlagrange * displ[NDIM*iglob+2]/ rmassz[iglob];
+           // Elif: test I/O
+           if (tx == 0) printf("ELIF: writing out forces instead of displacement!");
+           if (tx == 0) printf("%d \n", seismotype);
+        }
         //debug
         //if (tx == 0) printf("thread %d %d %d - %f %f %f\n",ispec,iglob,irec_local,hlagrange,displ[0 + 2*iglob],displ[1 + 2*iglob]);
       }

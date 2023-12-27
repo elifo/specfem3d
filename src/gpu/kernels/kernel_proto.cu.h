@@ -610,6 +610,7 @@ __global__ void compute_elastic_seismogram_kernel(int nrec_local,
                                                   realw_const_p rmassx,
                                                   realw_const_p rmassy,
                                                   realw_const_p rmassz,
+                                                  int seismotype,
                                                   int it);
 
 

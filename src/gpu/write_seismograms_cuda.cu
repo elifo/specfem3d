@@ -93,12 +93,15 @@ void FC_FUNC_(compute_seismograms_cuda,
     if (seismotype == 1){
       // deplacement
       if (mp->simulation_type == 1 || mp->simulation_type == 2){
-        displ = mp->d_displ;
+        //displ = mp->d_displ;
+        // ELIF: write out forces instead of displacement (quick & dirty :S)
+        displ = mp->d_accel;
         potential = mp->d_potential_acoustic;
       }else{
         // kernel simulations
         // reconstructed forward wavefield stored in b_displ, b_veloc, b_accel
-        displ = mp->d_b_displ;
+        //displ = mp->d_b_displ;
+        displ = mp->d_b_accel;
         potential = mp->d_b_potential_acoustic;
       }
       d_seismo = mp->d_seismograms_d;
@@ -176,6 +179,7 @@ void FC_FUNC_(compute_seismograms_cuda,
                                                                                  mp->d_rmassx,
                                                                                  mp->d_rmassy,
                                                                                  mp->d_rmassz,
+                                                                                 seismotype,
                                                                                  seismo_current);
       }
 #endif

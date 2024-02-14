@@ -1,0 +1,27 @@
+running example: Mon Sep 25 18:03:08 PDT 2023
+cp: cannot create regular file ‘OUTPUT_FILES/’: Not a directory
+cp: cannot create regular file ‘OUTPUT_FILES/’: Not a directory
+cp: cannot create regular file ‘OUTPUT_FILES/’: Not a directory
+
+  running solver on  5 processors...
+
+ Error opening file output_solver.txt for writing output info
+ Error detected, aborting MPI... proc            0
+At line 50 of file src/shared/exit_mpi.f90 (unit = 30, file = '��Z}j+')
+Fortran runtime error: File './OUTPUT_FILES//error_message000000.txt' does not exist
+[1695690190.055278] [hpc-25-15:15995:0]       mm_xpmem.c:85   UCX  WARN  remote segment id 200003e7b apid 100003e7b is not released, refcount 1
+[1695690190.055312] [hpc-25-15:15995:0]       mm_xpmem.c:85   UCX  WARN  remote segment id 200003e7d apid 300003e7b is not released, refcount 1
+[1695690190.055319] [hpc-25-15:15995:0]       mm_xpmem.c:85   UCX  WARN  remote segment id 200003e7c apid 200003e7b is not released, refcount 1
+[1695690190.055326] [hpc-25-15:15995:0]       mm_xpmem.c:85   UCX  WARN  remote segment id 200003e7f apid 500003e7b is not released, refcount 1
+[1695690190.055334] [hpc-25-15:15995:0]       mm_xpmem.c:85   UCX  WARN  remote segment id 200003e7e apid 400003e7b is not released, refcount 1
+--------------------------------------------------------------------------
+Primary job  terminated normally, but 1 process returned
+a non-zero exit code. Per user-direction, the job has been aborted.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+mpirun detected that one or more processes exited with non-zero status, thus causing
+the job to be terminated. The first process to do so was:
+
+  Process name: [[7619,1],0]
+  Exit code:    2
+--------------------------------------------------------------------------

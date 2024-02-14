@@ -1,0 +1,22 @@
+Device Name = Tesla P100-PCIE-16GB
+memory:
+  totalGlobalMem (in MB): 16276.250000
+  totalGlobalMem (in GB): 15.894775
+  totalConstMem (in bytes): 65536
+  Maximum 1D texture size (in bytes): 131072
+  sharedMemPerBlock (in bytes): 49152
+  regsPerBlock (in bytes): 65536
+blocks:
+  Maximum number of threads per block: 1024
+  Maximum size of each dimension of a block: 1024 x 1024 x 64
+  Maximum sizes of each dimension of a grid: 2147483647 x 65535 x 65535
+features:
+  Compute capability of the device = 6.0
+  multiProcessorCount: 56
+  canMapHostMemory: TRUE
+  deviceOverlap: TRUE
+  concurrentKernels: TRUE
+CUDA Device count: 1
+CUDA Driver Version / Runtime Version          12.2 / 11.2
+memory usage:
+  rank 0: GPU memory usage: used = 1122.125000 MB, free = 15154.125000 MB, total = 16276.250000 MB

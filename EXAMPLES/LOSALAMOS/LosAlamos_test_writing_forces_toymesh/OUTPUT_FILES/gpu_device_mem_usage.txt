@@ -1,0 +1,12 @@
+0: @rank        0: GPU memory usage: used = 1640.125000 MB, free = 14636.125000 MB, total = 16276.250000 MB
+0: @rank        0: GPU memory usage: used = 1622.125000 MB, free = 14654.125000 MB, total = 16276.250000 MB
+0: @rank        0: GPU memory usage: used = 1622.125000 MB, free = 14654.125000 MB, total = 16276.250000 MB
+0: @rank        0: GPU memory usage: used = 1640.125000 MB, free = 14636.125000 MB, total = 16276.250000 MB
+0: @rank        0: GPU memory usage: used = 1622.125000 MB, free = 14654.125000 MB, total = 16276.250000 MB
+0: @rank        0: GPU memory usage: used = 1622.125000 MB, free = 14654.125000 MB, total = 16276.250000 MB
+0: @rank        0: GPU memory usage: used = 1622.125000 MB, free = 14654.125000 MB, total = 16276.250000 MB
+0: @rank        0: GPU memory usage: used = 1622.125000 MB, free = 14654.125000 MB, total = 16276.250000 MB
+0: @rank        0: GPU memory usage: used = 1622.125000 MB, free = 14654.125000 MB, total = 16276.250000 MB
+0: @rank        0: GPU memory usage: used = 1622.125000 MB, free = 14654.125000 MB, total = 16276.250000 MB
+0: @rank        0: GPU memory usage: used = 1622.125000 MB, free = 14654.125000 MB, total = 16276.250000 MB
+0: @rank        0: GPU memory usage: used = 1622.125000 MB, free = 14654.125000 MB, total = 16276.250000 MB

@@ -1,0 +1,8 @@
+# testing forces
+
+# 1. run the efault code to save accel for one stat
+# 2. run the modif code to save forces
+
+Modifs in the code: I created a new parameter, d_force_losalamos to store forces, and overwrite seismograms 
+only for acceleration! code compiles, but NOT TESTED for RUN!
+

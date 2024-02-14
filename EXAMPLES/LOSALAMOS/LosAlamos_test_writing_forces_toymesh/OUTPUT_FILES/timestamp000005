@@ -1,0 +1,19 @@
+ Time step #            5
+ Time:   -2.39199996      seconds
+ Elapsed time in seconds =    7.0636399999999960E-003
+ Elapsed time in hh:mm:ss =      0 h 00 m 00 s
+ Mean elapsed time per time step in seconds =    1.4127279999999992E-003
+ Max norm displacement vector U in all slices (m) =    5.70994685E-04
+ Time steps done =            5  out of         5000
+ Time steps remaining =         4995
+ Estimated remaining time in seconds =    7.0565763599999958     
+ Estimated remaining time in hh:mm:ss =      0 h 00 m 07 s
+ Estimated total run time in seconds =    7.0636399999999959     
+ Estimated total run time in hh:mm:ss =      0 h 00 m 07 s
+ We have done   0.100000001     % of that
+ The run will finish approximately on (in local time): Tue Dec 26, 2023 18:58
+
+ ************************************************************
+ **** BEWARE: the above time estimates are not very reliable
+ **** because fewer than 100 iterations have been performed
+ ************************************************************

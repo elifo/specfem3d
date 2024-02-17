@@ -1,0 +1,129 @@
+Station number (NSTA):  69486
+NCHUNK 7
+ichunk:  0
+compo:  X
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+compo:  Y
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+compo:  Z
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+*
+time_elapsed (min):  0.15223259113333334
+ichunk:  1
+compo:  X
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+compo:  Y
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+compo:  Z
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+*
+time_elapsed (min):  0.30091853578333333
+ichunk:  2
+compo:  X
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+compo:  Y
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+compo:  Z
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+*
+time_elapsed (min):  0.4520309122833333
+ichunk:  3
+compo:  X
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+compo:  Y
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+compo:  Z
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+*
+time_elapsed (min):  0.6065318115333334
+ichunk:  4
+compo:  X
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+compo:  Y
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+compo:  Z
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+*
+time_elapsed (min):  0.7614176594166667
+ichunk:  5
+compo:  X
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+compo:  Y
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+compo:  Z
+len(file_list):  10000
+size of df_list:  10000
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  40000000
+*
+time_elapsed (min):  0.9234124551333334
+ichunk:  6
+compo:  X
+len(file_list):  9486
+size of df_list:  9486
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  37944000
+compo:  Y
+len(file_list):  9486
+size of df_list:  9486
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  37944000
+compo:  Z
+len(file_list):  9486
+size of df_list:  9486
+size of df_list[0]:  4000
+df size (NSTA_chunk*NT):  37944000
+*
+time_elapsed (min):  1.0785029661666667
+***

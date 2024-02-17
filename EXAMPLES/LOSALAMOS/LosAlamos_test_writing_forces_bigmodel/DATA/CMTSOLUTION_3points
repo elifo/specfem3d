@@ -1,0 +1,39 @@
+PDE  1999 01 01 00 00 00.00  5000 2000 -1000 1.4 1.4 test
+event name:       test
+time shift:       0.0
+half duration:    0.5
+latorUTM:         544000.0
+longorUTM:        482000.0
+depth:            0.0
+Mrr:              -0.351e22
+Mtt:              -0.329e21
+Mpp:              0.384e22
+Mrt:              -0.8e21
+Mrp:              0.24e21
+Mtp:              -0.671e21
+PDE  1999 01 01 00 00 00.00  5000 2000 -1000 1.4 1.4 test
+event name:       test
+time shift:       0.0
+half duration:    0.5
+latorUTM:         540000.0
+longorUTM:        483000.0
+depth:            0.5e3
+Mrr:              -0.248e22
+Mtt:              0.119e21
+Mpp:              0.236e22
+Mrt:              -0.545e20
+Mrp:              0.929e21
+Mtp:              -0.5e21
+PDE  1999 01 01 00 00 00.00  5000 2000 -1000 1.4 1.4 test
+event name:       test
+time shift:       0.0
+half duration:    0.5
+latorUTM:         542000.0
+longorUTM:        481000.0
+depth:            -0.5e3
+Mrr:              -0.121e22
+Mtt:              0.245e20
+Mpp:              0.119e22
+Mrt:              0.119e21
+Mrp:              -0.383e21
+Mtp:              0.3e21

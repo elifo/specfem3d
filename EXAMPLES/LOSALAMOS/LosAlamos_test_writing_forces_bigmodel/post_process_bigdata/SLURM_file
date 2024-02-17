@@ -1,0 +1,25 @@
+#!/bin/bash
+
+#Submit this script with: sbatch thefilename
+
+
+#SBATCH -J "LosChunk"   # job name
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=4
+##SBATCH --threads-per-core=1
+#SBATCH --mem=50GB
+#SBATCH --time=2:00:00  
+
+
+# LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
+module load python3/3.8.5
+
+# SWITCH TO VIRTUAL ENV
+source  /central/groups/enceladus/ELIF/python-environments/my-test-venv/bin/activate
+
+# RUN SCRIPT
+python prepare_bigdata_chunk_hdf5.py 
+
+
+
+

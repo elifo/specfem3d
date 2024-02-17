@@ -1,0 +1,42 @@
+#!/bin/bash
+
+#Submit this script with: sbatch thefilename
+
+
+#SBATCH -J "LosMovie"   # job name
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --threads-per-core=1
+#SBATCH --time=24:00:00
+
+# LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
+
+
+
+# create execuateble link
+#cd ./bin
+#ln -s ../../../../bin/xcombine_vol_data_vtk ./
+#cd ../
+
+# convert bin to vtk
+DIRIN=./bin_files_for_vtk/
+DIROUT=$DIRIN/VTK_FILES
+
+for DISPLAY in velocity_X  velocity_Y  velocity_Z;
+  do echo '* changing display...';
+     echo $DISPLAY;
+     for it in `seq 5000 5000 100000`;
+        do echo $it;
+        ./create_one_snapshot.sh  $it  $DIRIN $DISPLAY $DIROUT ;
+     done
+done
+
+
+echo 'Done!'
+#./create_one_snapshot.sh  $it  $DIRIN $DISPLAY $DIROUT
+
+
+
+
+
+

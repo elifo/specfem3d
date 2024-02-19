@@ -42,3 +42,5 @@ doc/USER_MANUAL/Schedule
 .*swn
 *~
 *.pyc
+utils/.DS_Store
+.DS_Store

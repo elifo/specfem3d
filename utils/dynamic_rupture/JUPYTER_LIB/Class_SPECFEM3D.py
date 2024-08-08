@@ -627,88 +627,108 @@ class specfem3d (object):
           print ('*')
       ##
 
-      def plot_snapshots(self, vertical_fault=True, n_contour=5, dt_snap=1.0, contour=False, 
-                                    cmap='magma',_asp=3, data_type='D',**kwargs):
+      def plot_snapshots_test(self, vertical_fault=True, n_contour=5, dt_snap=1.0, contour=True, 
+                              cmap='magma', _asp=3, data_type='D', NX=1000, NZ=1000, 
+                              tmin=1, tmax=10, **kwargs):  # Added tmin and tmax parameters
 
-            if not vertical_fault: print('Modify the script for non-vertical faults!!!')
+          if not vertical_fault: 
+              print('Modify the script for non-vertical faults!!!')
+              return
 
-            Dx_all = self.fault[data_type+'x']
-            Dz_all = self.fault[data_type+'z']
+          # Number of snapshots based on tmin and tmax
+          nsnap = int((tmax - tmin) / dt_snap) + 1
+          Dx_all = self.fault[data_type+'x'][int(tmin / dt_snap):int(tmax / dt_snap) + 1]
 
-            X = self.fault['x'] 
-            Y = self.fault['y']  
-            Z = self.fault['z']  
+          X = self.fault['x'] 
+          Y = self.fault['y']  
+          Z = self.fault['z']  
 
-            X = X [ (Y == 0.0) ]
-            ext = [min(X), max(X), min(Z), max(Z)]
-            xi, zi = np.meshgrid(np.linspace(ext[0],ext[1], 1e3), np.linspace(ext[2],ext[3],1e3))
+          print('Rotating fault plane to horizontal axis...')
+          xtrans = (X**2 + Y**2) ** 0.5
+          ref_point = min(xtrans)
+          print('Reference point for translation: ', ref_point)        
+          xtrans -= ref_point
+          print('Fault length: ', max(xtrans))
+          X = xtrans
+          
+          ext = [min(X), max(X), min(Z), max(Z)]
+          xi, zi = np.meshgrid(np.linspace(ext[0], ext[1], NX), np.linspace(ext[2], ext[3], NZ))
 
-            vmin=min(map(min, Dx_all)); vmax=max(map(max, Dx_all))
-            vzmin=min(map(min, Dz_all)); vzmax=max(map(max, Dz_all))
-            print ('Min and max of overall strike slip (m): ', '%.0e %.0e' % (vmin, vmax) )
-            print ('Min and max of overall dip slip (m): ', '%.0e %.0e' % (vzmin, vzmax))
+          vmin = min(map(np.min, Dx_all))
+          vmax = max(map(np.max, Dx_all))
+          print('Min and max of overall strike slip (m): ', '%.1f %.1f' % (vmin, vmax))
 
-            vmax = max(abs(vmin), vmax); #vmin = -vmax        
-            vzmax = max(abs(vzmin), vzmax); vzmin = -vzmax
+          # Adjust vmin and vmax if needed
+          if vmax - vmin < 1e-2:
+              vmax += 1e-2
+              vmin -= 1e-2
 
-            plt.close('all')
-            for n, (D, Dz)in  enumerate( zip(Dx_all, Dz_all)):
-                  print ('*') 
-                  print ('t (s) = ', n*dt_snap)
-                  print ('STRIKE SLIP - Min and max: ',  '%.0e %.0e' %  (min(D), max(D)) )
-                  print ('DIP SLIP    - Min and max: ', '%.0e %.0e' %  (min(Dz), max(Dz)) )
-                  ###
+          # Determine grid dimensions
+          n_plots = nsnap
+          n_cols = 5
+          n_rows = (n_plots // n_cols) + (1 if n_plots % n_cols != 0 else 0)
+          
+          plt.close('all')
+          fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 4, n_rows * 4))  # Adjusted figsize
 
-                  fig = plt.figure(figsize=(8,3.5)); set_style('whitegrid', scale=0.8)
-                  
-                  tit = 'Snapshot at time (s): '+ str(n*dt_snap)
-                  plt.suptitle(tit)
+          # Flatten axes array if necessary
+          if n_rows * n_cols == 1:
+              axes = np.array([axes])
+          else:
+              axes = axes.flatten()
 
-                  ### strike slip
-                  D = D [ (Y== 0.0) ]                                
-                  y = gd( (X,Z), D, (xi,zi), method='linear')
-                  y = np.flipud(y)  
+          # Create a discrete colormap
+          num_colors = 20
+          cmap = plt.get_cmap(cmap, num_colors)
+          
+          for n in range(nsnap):  # Plot from tmin to tmax
+              ax = axes[n]
+              
+              print('*')
+              print('t (s) = ', tmin + n * dt_snap)
+              print('STRIKE SLIP - Min and max: ', '%.1f %.1f' % (np.min(Dx_all[n]), np.max(Dx_all[n])))
 
-                  ax = fig.add_subplot(121, aspect=_asp)
-                  ax.set_title('Strike slip (m)')
-                  ax.set_xlabel('Along strike (km)')
-                  ax.set_ylabel('Along dip (km)')    
-                  im = ax.imshow(y, extent=[min(X), max(X), min(Z), max(Z)], \
-                                    vmin=vmin, vmax=vmax, cmap=cmap)
+              ### Strike slip
+              D = Dx_all[n]  # No masking, using the full array
+              y = gd((X, Z), D, (xi, zi), method='linear')
 
-                  levels = np.linspace(0.0, vmax, num=n_contour)
-                  if contour: ax.contour(y, levels, colors='white', alpha=0.5, extent=[min(X), max(X), min(Z), max(Z)],\
-                               origin='upper')
+              # Ensure extent matches the data
+              extent = [ext[0], ext[1], ext[2], ext[3]]
+              im = ax.imshow(y, extent=extent, vmin=vmin, vmax=vmax, cmap=cmap, origin='lower')
 
-                  c = fig.colorbar(im, ax=ax, orientation='horizontal', fraction=.1, shrink=1, pad=0.25, format='%.0e')                
-                  c.mappable.set_clim(vmin, vmax)
-
-
-                  ### dip slip
-                  Dz = Dz [ (Y == 0.0) ]                                
-                  y = gd( (X,Z), Dz, (xi,zi), method='linear')
+              # Add contours with small linewidth and correct extent
+              if contour: 
                   y = np.flipud(y)
-
-                  ax = fig.add_subplot(122)
-                  ax.set_title('Dip slip (m)')
-                  ax.set_xlabel('Along strike (km)')
-                  ax.set_ylabel('Along dip (km)')    
-
-                  im = ax.imshow(y, extent=[min(X), max(X), min(Z), max(Z)], \
-                                    vmin=vzmin, vmax=vzmax, cmap=cmap)
-
-                  levels = np.linspace(0.0, vzmax, num=n_contour)
-                  if contour: ax.contour(y, levels, colors='white', alpha=0.5, extent=[min(X), max(X), min(Z), max(Z)],\
-                               origin='upper')
-                  # c = plt.colorbar(im, fraction=0.046, pad=0.1,shrink=0.25)
-                  c = fig.colorbar(im, ax=ax, orientation='horizontal', fraction=.1, shrink=1, pad=0.25, format='%.0e')                
-                  c.mappable.set_clim(vzmin, vzmax)
-
-                  plt.tight_layout()
-                  plt.show()
-               ###
+                  levels = np.linspace(vmin, vmax, num=n_contour)
+                  contour_yi, contour_zi = np.meshgrid(np.linspace(ext[0], ext[1], NX), np.linspace(ext[2], ext[3], NZ))
+                  contour_yi = np.flipud(contour_yi)
+                  contour_zi = np.flipud(contour_zi)
+                  contour_plot = ax.contour(contour_yi, contour_zi, y, levels=levels, colors='white', alpha=0.5, linewidths=0.5, origin='lower')
+                  # To avoid issues with extent in contour
+                  contour_plot.collections[0].set_edgecolor('none')
+              
+              # Add subplot title
+              ax.set_title(f't (s) = {tmin + n * dt_snap:.1f} s')
+              
+              # Remove axis labels and gridlines
+              ax.set_xticks([])
+              ax.set_yticks([])
+              ax.grid(False)
+              
+          # Remove unused subplots
+          for ax in axes[n_plots:]:
+              ax.remove()
+              
+          # Add a single colorbar at the bottom
+          cbar_ax = fig.add_axes([0.1, 0.02, 0.8, 0.03])  # Adjusted position
+          norm = plt.Normalize(vmin=vmin, vmax=vmax)
+          cbar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cbar_ax, orientation='horizontal', format='%.1f')
+          cbar.set_label('Strike slip (m)', fontsize=12)
+          
+          # Manually adjust layout to accommodate colorbar
+          plt.subplots_adjust(left=0.05, right=0.95, bottom=0.1, top=0.9, wspace=0.2, hspace=0.4)
+          plt.show()
       ###
-
 
       def plot_snapshots_in1figure(self, vertical_fault=True, n_contour=5, contour=False, 
                          cmap='magma',_asp=3,jump=0, nrows=3, ncols=2, figsize=(8,8), ext=[], \

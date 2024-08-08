@@ -421,12 +421,12 @@ def get_WC94_scaling(Mw=7.0):
 ### CLASS ###
 class specfem3d (object):
 
-      def __init__(self, directory='', n_fault=1, n_iter=1, itd=1, is_single=False,is_snapshot=False, info=True):
+      def __init__(self, directory='', n_fault=1, n_snap=1, itd=1, is_single=False,is_snapshot=False, info=True):
             self.directory = directory+ '/'
             self.fault = {}
             if info: print ('Directory: ', self.directory); print ();
             self.itd = itd
-            if is_snapshot: self.__read_snapshots(n_fault=n_fault, n_iter=n_iter, itd=itd, single=is_single,_info=info)
+            if is_snapshot: self.__read_snapshots(n_fault=n_fault, n_iter=n_snap, itd=itd, single=is_single,_info=info)
             ###
 
       def __read_snapshots(self, n_fault=1, n_iter=1, itd=1, single=False, _info=True):
@@ -462,124 +462,145 @@ class specfem3d (object):
 
 
       def plot_final_slip(self, vertical_fault=True, cmap='magma',tmax=0.0, Nx=1000, Nz=1000,
-                                  Xcut=None,Zcut=None,ext=[],info=True,Ncmap=6,plot=True,\
-                                  **kwargs):
+                                Xcut=None,Zcut=None,ext=[],info=True,Ncmap=6,plot=True,\
+                                **kwargs):
 
-          if not vertical_fault: print('Modify the script for non-vertical faults!!!')
+        if not vertical_fault: print('Modify the script for non-vertical faults!!!')
 
-          if tmax ==0.0: nsnaps = len(self.fault['Dx'])
-          else: nsnaps = int(tmax/self.dt/self.itd)
+        if tmax ==0.0: nsnaps = len(self.fault['Dx'])
+        else: nsnaps = int(tmax/self.dt/self.itd)
 
-          if info: print ('Total number of used snapshots: ', nsnaps)
-          Dx_all = self.fault['Dx'][:nsnaps]
-          Dz_all = self.fault['Dz'][:nsnaps]
+        if info: print ('Total number of used snapshots: ', nsnaps)
+        Dx_all = self.fault['Dx'][:nsnaps]
+        Dz_all = self.fault['Dz'][:nsnaps]
 
-          Xall = self.fault['x'] 
-          Y = self.fault['y']  
-          Zall = self.fault['z']  
+        X = self.fault['x'] 
+        Y = self.fault['y']  
+        Z = self.fault['z']  
 
-          if Zcut==None: Zcut = min(Zall)
-          if Xcut==None: 
-              Xcutmin, Xcutmax = min(Xall), max(Xall)
-          else: 
-              Xcutmin, Xcutmax = Xcut[0], Xcut[1]
+        print ('Rotating fault plane to horizontal axis...')
+        xtrans = (X**2+ Y**2)**0.5
+        ref_point = min(xtrans)
+        print ('Reference point for translation: ', ref_point)        
+        xtrans -= ref_point
+        print('Fault length: ', max(xtrans))
 
-          cdt = (Y == 0.0) & (Zall >= Zcut) & (Xall >= Xcutmin) & (Xall <= Xcutmax)
-          X = Xall [cdt]
-          Z = Zall [cdt]
+        Xall = xtrans
+        Zall = Z
 
-          if ext==[]: ext = [min(X), max(X), min(Z), max(Z)]
-          xi, zi = np.meshgrid(np.linspace(ext[0],ext[1], Nx), np.linspace(ext[2],ext[3],Nz))
+        try:
+          xhypo, yhypo, zhypo = self.x_hypo, self.y_hypo, self.z_hypo
+          print ('xhypo, yhypo, zhypo: ', xhypo, yhypo, zhypo)
+          xhypo = (xhypo**2+ yhypo**2)**0.5
+          xhypo -= ref_point*1e3
+          print ('After rotation & translation: xhypo, zhypo: ', xhypo, zhypo)
+        except:
+          pass
 
-          D1 = Dx_all[len(Dx_all)-1]
-          D2 = Dz_all[len(Dz_all)-1]
-          D_net = [(_D1**2+ _D2**2)**0.5  for _D1,_D2 in zip(D1,D2)  ]
-          D_net = np.array(D_net)
+        if Zcut==None: Zcut = min(Zall)
+        if Xcut==None: 
+            Xcutmin, Xcutmax = min(Xall), max(Xall)
+        else: 
+            Xcutmin, Xcutmax = Xcut[0], Xcut[1]
 
-          slip_direction = kwargs.pop('slip_direction', 'along_strike') 
-          if slip_direction == 'along_dip':
-              if info: print ('Using slip along dip! ')
-              D = D2
-              vmin=min(map(min, Dz_all)); vmax=max(map(max, Dz_all))
-              vmax = max(abs(vmin), vmax); vmin = -vmax;
-          elif slip_direction == 'both':
-              if info: print ('Using composite slip (both components))')
-              D = D_net  
-              vmin=min(map(min, Dx_all)); vmax=max(map(max, Dx_all))
-              vmax = max(abs(vmin), vmax); vmin=0.0  
-          elif slip_direction == 'along_strike':
-              if info: print ('Using slip along strike! ')              
-              D = D1
-              vmin=min(map(min, Dx_all)); vmax=max(map(max, Dx_all))
-              vmax = max(abs(vmin), vmax); vmin=0.0      
-          #
+        # cdt = (Y == 0.0) & (Zall >= Zcut) & (Xall >= Xcutmin) & (Xall <= Xcutmax)
+        cdt = (Zall >= Zcut) & (Xall >= Xcutmin) & (Xall <= Xcutmax)
 
-          vmax = kwargs.pop('vmax', vmax) 
+        X = Xall [cdt]
+        Z = Zall [cdt]
 
-          if info:
-            print ('*') 
-            print ('ON FAULT PLANE ::') 
-            print ('*')             
-            print ('Along strike:')
-            print ('Max slip (m): ', max(D1) )
-            print ('Ave slip (m): ', np.average(D1) )            
-            print ('*')             
-            print ('Along dip:')
-            print ('Max slip (m): ', max(D2) )
-            print ('Ave slip (m): ', np.average(D2) )
-            print ('*')             
-            print ('Both components:')
-            print ('Max slip (m): ', max(D_net) )
-            print ('Ave slip (m): ', np.average(D_net) )
-            print ('*')             
+        if ext==[]: ext = [min(X), max(X), min(Z), max(Z)]
+        xi, zi = np.meshgrid(np.linspace(ext[0],ext[1], Nx), np.linspace(ext[2],ext[3],Nz))
 
-            print ('*')             
-            print ('ON SURFACE ::') 
-            print ('*')             
-            print ('Along strike:')
-            D_surf = D1 [ (abs(Zall)== min(abs(Zall))) ] 
-            print ('Max slip (m): ', max(D_surf) )
-            print ('Ave slip (m): ', np.average(D_surf) )            
-            print ('*')             
-            print ('Along dip:')
-            D_surf = D2 [ (abs(Zall)== min(abs(Zall))) ] 
-            print ('Max slip (m): ', max(D_surf) )
-            print ('Ave slip (m): ', np.average(D_surf) )   
-            print ('*')             
-            print ('Both components:')
-            D_surf = D_net [ (abs(Zall)== min(abs(Zall))) ] 
+        D1 = Dx_all[len(Dx_all)-1]
+        D2 = Dz_all[len(Dz_all)-1]
+        D_net = [(_D1**2+ _D2**2)**0.5  for _D1,_D2 in zip(D1,D2)  ]
+        D_net = np.array(D_net)
 
-          if not info:
-            D_surf = D_net [ (abs(Zall)== min(abs(Zall))) ] 
-            cdt2 = (abs(Zall)== min(abs(Zall)))
-            x_surf = Xall[cdt2]
-            print ('Max slip (m): ', max(D_surf) )
-            print ('Ave slip (m): ', np.average(D_surf) )   
-            print ('*')    
-          ##
-          if plot:
-            plt.close('all')
-            fig = plt.figure(figsize=(6,4))
-            cmap = plt.cm.get_cmap(cmap, Ncmap)
-            ### strike slip
-            D = D [ cdt]                                
-            y = gd( (X,Z), D, (xi,zi), method=kwargs.pop('interpolation', 'linear'), 
-                                      fill_value=kwargs.pop('fill_value', 0.0))
-            y = np.flipud(y)  
-            ax = fig.add_subplot(111)
-            ax.set_title('Max slip on fault plane (m) = '+ '%.2f' % (max(D))  )
-            ax.set_xlabel('Along strike (km)', fontsize=15)
-            ax.set_ylabel('Along dip (km)', fontsize=15)    
-            im = ax.imshow(y, extent=ext, \
-                                    vmin=vmin, vmax=vmax, cmap=cmap)
-            try: ax.plot(self.x_hypo, self.z_hypo, c='k', marker='*', alpha=0.5)
-            except: pass
-            c = plt.colorbar(im, fraction=0.046, pad=0.05, shrink=0.5, label='Strike slip (m)')
-            c.mappable.set_clim(vmin, vmax)
-            plt.tight_layout()
-            plt.show()
+        slip_direction = kwargs.pop('slip_direction', 'along_strike') 
+        if slip_direction == 'along_dip':
+            if info: print ('Using slip along dip! ')
+            D = D2
+            vmin=min(map(min, Dz_all)); vmax=max(map(max, Dz_all))
+            vmax = max(abs(vmin), vmax); vmin = -vmax;
+        elif slip_direction == 'both':
+            if info: print ('Using composite slip (both components))')
+            D = D_net  
+            vmin=min(map(min, Dx_all)); vmax=max(map(max, Dx_all))
+            vmax = max(abs(vmin), vmax); vmin=0.0  
+        elif slip_direction == 'along_strike':
+            if info: print ('Using slip along strike! ')              
+            D = D1
+            vmin=min(map(min, Dx_all)); vmax=max(map(max, Dx_all))
+            vmax = max(abs(vmin), vmax); vmin=0.0      
+        #
 
-          return x_surf, D_surf
+        vmax = kwargs.pop('vmax', vmax) 
+
+        if info:
+          print ('*') 
+          print ('ON FAULT PLANE ::') 
+          print ('*')             
+          print ('Along strike:')
+          print ('Max slip (m): ', max(D1) )
+          print ('Ave slip (m): ', np.average(D1) )            
+          print ('*')             
+          print ('Along dip:')
+          print ('Max slip (m): ', max(D2) )
+          print ('Ave slip (m): ', np.average(D2) )
+          print ('*')             
+          print ('Both components:')
+          print ('Max slip (m): ', max(D_net) )
+          print ('Ave slip (m): ', np.average(D_net) )
+          print ('*')             
+
+          print ('*')             
+          print ('ON SURFACE ::') 
+          print ('*')             
+          print ('Along strike:')
+          D_surf = D1 [ (abs(Zall)== min(abs(Zall))) ] 
+          print ('Max slip (m): ', max(D_surf) )
+          print ('Ave slip (m): ', np.average(D_surf) )            
+          print ('*')             
+          print ('Along dip:')
+          D_surf = D2 [ (abs(Zall)== min(abs(Zall))) ] 
+          print ('Max slip (m): ', max(D_surf) )
+          print ('Ave slip (m): ', np.average(D_surf) )   
+          print ('*')             
+          print ('Both components:')
+          D_surf = D_net [ (abs(Zall)== min(abs(Zall))) ] 
+
+        if not info:
+          D_surf = D_net [ (abs(Zall)== min(abs(Zall))) ] 
+          cdt2 = (abs(Zall)== min(abs(Zall)))
+          x_surf = Xall[cdt2]
+          print ('Max slip (m): ', max(D_surf) )
+          print ('Ave slip (m): ', np.average(D_surf) )   
+          print ('*')    
+        ##
+        if plot:
+          plt.close('all')
+          fig = plt.figure(figsize=(6,4))
+          cmap = plt.cm.get_cmap(cmap, Ncmap)
+          ### strike slip
+          D = D [ cdt]                                
+          y = gd( (X,Z), D, (xi,zi), method=kwargs.pop('interpolation', 'linear'), 
+                                    fill_value=kwargs.pop('fill_value', 0.0))
+          y = np.flipud(y)  
+          ax = fig.add_subplot(111)
+          ax.set_title('Max slip on fault plane (m) = '+ '%.2f' % (max(D))  )
+          ax.set_xlabel('Along strike (km)', fontsize=15)
+          ax.set_ylabel('Along dip (km)', fontsize=15)    
+          im = ax.imshow(y, extent=ext, aspect='auto', \
+                                  vmin=vmin, vmax=vmax, cmap=cmap)
+          try: ax.scatter(xhypo/1e3, zhypo/1e3, c='snow', marker='*', edgecolor='k', s=150)
+          except: pass
+          c = plt.colorbar(im, fraction=0.046, pad=0.05, shrink=0.5, label='Strike slip (m)')
+          c.mappable.set_clim(vmin, vmax)
+          plt.tight_layout()
+          plt.show()
+
+        return x_surf, D_surf
       ###
 
       def plot_surface_slip(self,D_surf,x_surf,percent=5.0):
